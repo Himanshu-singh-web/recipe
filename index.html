@@ -1,13 +1,14 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <meta name="claude:viewport-fit-sides" content="cover">
 <title>Boards Quest</title>
 <style>
-/* layout: a vertical mountain-path journey of 10 week-nodes; tapping a node opens its quest panel below */
+/* layout: a vertical mountain-path journey of 10 week-nodes; tapping a node opens its quest panel below.
+   A group selector at the top switches which 5th subject (elective) is active. */
 :root{
-  --bg:#0b0e1a; --bg2:#10142480; --surface:#141a2e; --surface2:#1b2238;
+  --bg:#0b0e1a; --surface:#141a2e; --surface2:#1b2238;
   --fg:#eef0fa; --muted:#8891b5; --line:#2a3251;
-  --gold:#e8b94a; --path-done:#e8b94a; --path-todo:#2a3251;
-  --acct:#e8b94a; --bst:#4fd1c5; --macro:#f2789f; --ied:#9b8cf2; --eng:#6fb8f0; --cs:#7fd858;
+  --gold:#e8b94a; --path-todo:#2a3251;
+  --acct:#e8b94a; --bst:#4fd1c5; --macro:#f2789f; --ied:#9b8cf2; --eng:#6fb8f0;
+  --cs:#7fd858; --tabla:#ff8a5c; --vocal:#e8e04a; --guitar:#c084fc; --physical:#4ddbff;
   --boss:#ef5e5e;
   --font-display:'Press Start 2P',monospace;
   --font-body:'Space Mono','JetBrains Mono',ui-monospace,monospace;
@@ -26,6 +27,15 @@ body{
 }
 .wrap{max-width:640px;margin:0 auto;}
 
+/* group selector */
+.group-bar{display:flex; gap:6px; overflow-x:auto; margin-bottom:14px; padding-bottom:2px;}
+.group-chip{
+  flex-shrink:0; background:var(--surface); border:1px solid var(--line); color:var(--muted);
+  padding:8px 13px; border-radius:99px; font-size:0.72rem; font-weight:700; cursor:pointer;
+  white-space:nowrap; font-family:var(--font-body);
+}
+.group-chip.active{background:var(--gold); color:#1b1400; border-color:var(--gold);}
+
 /* header / stats bar */
 .hud{
   background:var(--surface); border:2px solid var(--line); border-radius:14px;
@@ -40,6 +50,8 @@ body{
 .xp-bar-track{flex:1; height:12px; background:var(--surface2); border-radius:99px; overflow:hidden; border:1px solid var(--line);}
 .xp-bar-fill{height:100%; background:linear-gradient(90deg,#e8b94a,#ffd98a); border-radius:99px; transition:width .4s ease;}
 .xp-label{font-size:0.7rem; color:var(--muted); white-space:nowrap; font-variant-numeric:tabular-nums;}
+.hud-subjects{display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;}
+.hud-subj-pill{font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; padding:2px 8px; border-radius:99px;}
 
 /* path */
 .path{position:relative; padding:10px 0 10px 50px;}
@@ -91,6 +103,16 @@ body{
 .quest-text{font-size:0.88rem; line-height:1.4;}
 .quest.done .quest-text{color:var(--muted); text-decoration:line-through;}
 .quest-xp{font-size:0.68rem; color:var(--gold); font-weight:700; flex-shrink:0; white-space:nowrap; font-variant-numeric:tabular-nums;}
+.boss-section{margin-top:16px; padding-top:14px; border-top:2px dashed var(--boss);}
+.boss-section h3{
+  font-family:var(--font-display); font-size:0.6rem; color:var(--boss); margin:0 0 10px; letter-spacing:.03em;
+}
+.quest.boss .quest-xp{color:var(--boss);}
+.close-panel{
+  margin-top:14px; width:100%; padding:10px; background:var(--surface2); border:1px solid var(--line);
+  color:var(--muted); border-radius:8px; font-family:var(--font-body); font-size:0.8rem; cursor:pointer;
+}
+
 .daily-section{margin-top:16px; padding-top:14px; border-top:1px solid var(--line);}
 .daily-section h3{
   font-family:var(--font-display); font-size:0.6rem; color:var(--gold); margin:0 0 10px; letter-spacing:.03em;
@@ -102,19 +124,10 @@ body{
 }
 .day-row.today .day-label{color:var(--gold);}
 .day-sessions{flex:1; min-width:0; display:flex; flex-direction:column; gap:5px;}
-.sess-chip{display:flex; align-items:baseline; gap:6px; font-size:0.78rem; line-height:1.35;}
+.sess-chip{display:flex; align-items:baseline; gap:6px; font-size:0.78rem; line-height:1.35; flex-wrap:wrap;}
 .sess-time{font-size:0.62rem; color:var(--muted); flex-shrink:0; width:42px; font-variant-numeric:tabular-nums;}
 .sess-subj{font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; flex-shrink:0;}
 .sess-check{flex-shrink:0; font-size:0.72rem;}
-.boss-section{margin-top:16px; padding-top:14px; border-top:2px dashed var(--boss);}
-.boss-section h3{
-  font-family:var(--font-display); font-size:0.6rem; color:var(--boss); margin:0 0 10px; letter-spacing:.03em;
-}
-.quest.boss .quest-xp{color:var(--boss);}
-.close-panel{
-  margin-top:14px; width:100%; padding:10px; background:var(--surface2); border:1px solid var(--line);
-  color:var(--muted); border-radius:8px; font-family:var(--font-body); font-size:0.8rem; cursor:pointer;
-}
 
 .note{color:var(--muted); font-size:0.72rem; margin-top:30px; line-height:1.6; text-align:center;}
 .reset-btn{
@@ -122,7 +135,6 @@ body{
   padding:7px 14px; border-radius:8px; font-size:0.72rem; cursor:pointer; font-family:var(--font-body);
 }
 
-/* level-up toast */
 #levelup{
   position:fixed; left:50%; top:16%; transform:translate(-50%,-10px); z-index:50;
   background:var(--surface); border:2px solid var(--gold); border-radius:14px; padding:18px 26px;
@@ -135,6 +147,8 @@ body{
 </style>
 
 <div class="wrap">
+  <div class="group-bar" id="group-bar"></div>
+
   <div class="hud">
     <div class="hud-top">
       <div class="title-badge">LEVEL <span id="hud-level">1</span><span class="sub" id="hud-rank">Beginner</span></div>
@@ -144,6 +158,7 @@ body{
       <div class="xp-bar-track"><div class="xp-bar-fill" id="xp-fill" style="width:0%"></div></div>
       <div class="xp-label"><span id="xp-current">0</span> / <span id="xp-needed">100</span> XP</div>
     </div>
+    <div class="hud-subjects" id="hud-subjects"></div>
   </div>
 
   <div class="path" id="path">
@@ -153,7 +168,7 @@ body{
 
   <div id="panels"></div>
 
-  <p class="note">67 days, 6 subjects, one goal: 98%+.<br>Tap a week on the path to open its quests.</p>
+  <p class="note">67 days, 5 subjects, one goal: 98%+.<br>Tap a week on the path to open its quests.</p>
   <button class="reset-btn" id="reset-btn">Reset all progress</button>
 </div>
 
@@ -164,11 +179,25 @@ body{
   var SUBJECT_META = {
     acct:  {label:'Accountancy', color:'var(--acct)'},
     bst:   {label:'BST', color:'var(--bst)'},
-    macro: {label:'Macroeconomics', color:'var(--macro)'},
-    ied:   {label:'IED', color:'var(--ied)'},
+    macro: {label:'Economics (Macro)', color:'var(--macro)'},
+    ied:   {label:'Economics (IED)', color:'var(--ied)'},
     eng:   {label:'English', color:'var(--eng)'},
-    cs:    {label:'Computer Sci', color:'var(--cs)'}
+    cs:       {label:'Computer Sci', color:'var(--cs)'},
+    tabla:    {label:'Tabla', color:'var(--tabla)'},
+    vocal:    {label:'Vocal Music', color:'var(--vocal)'},
+    guitar:   {label:'Guitar', color:'var(--guitar)'},
+    physical: {label:'Physical Ed', color:'var(--physical)'}
   };
+
+  // the 5 subject groups the user defined — 4 common subjects + one elective
+  var GROUPS = [
+    {id:'tabla',    label:'Tabla',        elective:'tabla'},
+    {id:'vocal',    label:'Vocal Music',  elective:'vocal'},
+    {id:'guitar',   label:'Guitar',       elective:'guitar'},
+    {id:'physical', label:'Physical Ed',  elective:'physical'},
+    {id:'cs',       label:'Computer Sci', elective:'cs'}
+  ];
+  var COMMON_SUBJECTS = ['acct','bst','macro','ied','eng'];
 
   var WEEKS = [
     {id:'w1', title:'Week 1', dates:'Oct 27 – Nov 2', phase:'Phase 1 · First Pass', quests:[
@@ -176,118 +205,198 @@ body{
       {s:'bst', t:'Nature & Significance of Management, Principles of Management'},
       {s:'macro', t:'National Income and Related Aggregates'},
       {s:'ied', t:'Eve of independence; development experience 1947–90 (Part 1)'},
-      {s:'eng', t:'Reading practice + Notice/Invitation + Flamingo: The Last Lesson, Lost Spring'},
-      {s:'cs', t:'Python revision — functions, modules, arguments, scope'}
+      {s:'eng', t:'Reading practice + Notice/Invitation + Flamingo: The Last Lesson, Lost Spring'}
     ], boss:[]},
     {id:'w2', title:'Week 2', dates:'Nov 3 – 9', phase:'Phase 1 · First Pass', quests:[
       {s:'acct', t:'Partnership — admission of a partner'},
       {s:'bst', t:'Business Environment, Planning'},
       {s:'macro', t:'Money and Banking'},
       {s:'ied', t:'Economic reforms since 1991 (LPG)'},
-      {s:'eng', t:'Letter writing (job application) + Flamingo: Deep Water, The Rattrap'},
-      {s:'cs', t:'Exception handling, text file handling'}
+      {s:'eng', t:'Letter writing (job application) + Flamingo: Deep Water, The Rattrap'}
     ], boss:[]},
     {id:'w3', title:'Week 3', dates:'Nov 10 – 16', phase:'Phase 1 · First Pass', quests:[
       {s:'acct', t:'Partnership — retirement and death of a partner'},
       {s:'bst', t:'Organising, Staffing'},
       {s:'macro', t:'Determination of Income & Employment — consumption function'},
       {s:'ied', t:'Current challenges — poverty, human capital formation'},
-      {s:'eng', t:'Letter to editor + article + Flamingo: Indigo; poetry: My Mother at Sixty Six, Keeping Quiet'},
-      {s:'cs', t:'File handling — binary files (pickle), CSV files'}
+      {s:'eng', t:'Letter to editor + article + Flamingo: Indigo; poetry: My Mother at Sixty Six, Keeping Quiet'}
     ], boss:[]},
     {id:'w4', title:'Week 4', dates:'Nov 17 – 23', phase:'Phase 1 · First Pass', quests:[
       {s:'acct', t:'Partnership — dissolution of a firm'},
       {s:'bst', t:'Directing, Controlling'},
       {s:'macro', t:'Determination of Income & Employment — multiplier, excess/deficient demand'},
       {s:'ied', t:'Current challenges — rural development, employment'},
-      {s:'eng', t:'Report writing + Flamingo poetry: A Thing of Beauty; Vistas: The Third Level, The Tiger King'},
-      {s:'cs', t:'Stack data structure — push/pop implementation'}
+      {s:'eng', t:'Report writing + Flamingo poetry: A Thing of Beauty; Vistas: The Third Level, The Tiger King'}
     ], boss:[]},
     {id:'w5', title:'Week 5', dates:'Nov 24 – 30', phase:'Phase 1 · First Pass', quests:[
       {s:'acct', t:'Accounting for companies — issue of shares'},
       {s:'bst', t:'Financial Management, Financial Markets'},
       {s:'macro', t:'Government Budget and the Economy'},
       {s:'ied', t:'Current challenges — infrastructure, environment & sustainable development'},
-      {s:'eng', t:'Vistas: Journey to the End of the Earth, The Enemy + first pass of remaining lessons'},
-      {s:'cs', t:'Computer Networks — full unit'}
+      {s:'eng', t:'Vistas: Journey to the End of the Earth, The Enemy + first pass of remaining lessons'}
     ], boss:[]},
     {id:'w6', title:'Week 6', dates:'Dec 1 – 7', phase:'Phase 1 · First Pass', quests:[
       {s:'acct', t:'Debentures, company final accounts, financial statement analysis, cash flow'},
       {s:'bst', t:'Marketing Management, Consumer Protection'},
       {s:'macro', t:'Balance of Payments'},
       {s:'ied', t:'Comparative development — India, Pakistan, China'},
-      {s:'eng', t:'Finish literature revision pass'},
-      {s:'cs', t:'Database Management — SQL, Python–SQL connectivity'}
+      {s:'eng', t:'Finish literature revision pass'}
     ], boss:[{t:'Timed Reading + Writing paper, full exam conditions', xp:50}]},
     {id:'w7', title:'Week 7', dates:'Dec 8 – 14', phase:'Phase 2 · Revision Round 1', quests:[
       {s:'acct', t:'Redo every numerical type from memory'},
       {s:'bst', t:'Quick revise Part A chapters'},
       {s:'macro', t:'Quick revise National Income & Money and Banking'},
       {s:'ied', t:'Quick revise Development Experience & Reforms'},
-      {s:'eng', t:'One Reading comprehension set, timed'},
-      {s:'cs', t:'Rewrite every program type without notes'}
-    ], boss:[{t:'Accountancy full sample paper, timed', xp:50},{t:'Computer Science full sample paper, timed', xp:50}]},
+      {s:'eng', t:'One Reading comprehension set, timed'}
+    ], boss:[{t:'Accountancy full sample paper, timed', xp:50}], electiveBoss:true},
     {id:'w8', title:'Week 8', dates:'Dec 15 – 21', phase:'Phase 2 · Revision Round 1', quests:[
       {s:'acct', t:'Practice 5 mixed numericals'},
       {s:'bst', t:'Full revision, all chapters'},
       {s:'macro', t:'Full revision, all chapters'},
       {s:'ied', t:'Full revision, all chapters'},
-      {s:'eng', t:'One Writing Skills set — letter/article/report'},
-      {s:'cs', t:'Practice 2 full programs + SQL queries'}
+      {s:'eng', t:'One Writing Skills set — letter/article/report'}
     ], boss:[{t:'BST sample paper, timed', xp:50},{t:'Macroeconomics sample paper, timed', xp:50},{t:'IED sample paper, timed', xp:50}]},
     {id:'w9', title:'Week 9', dates:'Dec 22 – 28', phase:'Phase 2 · Weak Areas', quests:[
       {s:'acct', t:'Revise topics flagged weak from sample papers'},
       {s:'bst', t:'Revise topics flagged weak from sample papers'},
       {s:'macro', t:'Revise topics flagged weak from sample papers'},
       {s:'ied', t:'Revise topics flagged weak from sample papers'},
-      {s:'eng', t:'Revise weak literature/writing areas'},
-      {s:'cs', t:'Revise topics flagged weak from sample papers'}
+      {s:'eng', t:'Revise weak literature/writing areas'}
     ], boss:[{t:'English full mock — Reading + Writing + Literature, timed', xp:50}]},
     {id:'w10', title:'Week 10', dates:'Dec 29 – 31', phase:'Phase 2 · Consolidate', quests:[
       {s:'acct', t:'Light final revision only — no new topics'},
       {s:'bst', t:'Light final revision only — no new topics'},
       {s:'macro', t:'Light final revision only — no new topics'},
       {s:'ied', t:'Light final revision only — no new topics'},
-      {s:'eng', t:'Light final revision only — no new topics'},
-      {s:'cs', t:'Light final revision only — no new topics'}
+      {s:'eng', t:'Light final revision only — no new topics'}
     ], boss:[{t:'Final mock — weakest subject #1', xp:50},{t:'Final mock — weakest subject #2', xp:50}]}
   ];
 
+  // elective-specific weekly content, 10 entries each (index 0 = Week 1 ... 9 = Week 10)
+  var ELECTIVE_WEEKS = {
+    cs: [
+      'Python revision — functions, modules, arguments, scope',
+      'Exception handling, text file handling',
+      'File handling — binary files (pickle), CSV files',
+      'Stack data structure — push/pop implementation',
+      'Computer Networks — full unit',
+      'Database Management — SQL, Python–SQL connectivity',
+      'Rewrite every program type without notes',
+      'Practice 2 full programs + SQL queries',
+      'Revise topics flagged weak from sample papers',
+      'Light final revision only — no new topics'
+    ],
+    tabla: [
+      'Theory Unit 1 — Uthan; Chautala-Ektala & Jhaptala-Sultala comparison. Daily riyaz: Teentala theka.',
+      'Theory Unit 2 — Layakari varieties; Tabla/Pakhawaj gharanas. Practice: Kayda in Teentala with palta.',
+      'Theory Unit 3 — History of Tabla. Practice: Rela and Tukra in Teentala.',
+      'Theory Unit 4 — Kishan Maharaj, Zakir Hussain, Chatrapati Singh, Purushotam Das. Practice: Jhaptala theka, Dugun-Chaugun laya.',
+      'Theory Unit 5 — Notating prescribed Talas; recognizing Talas from Thekas. Practice: Rupak & Tevra theka.',
+      'Consolidate all 5 theory units; full Kayda–Rela–Tukra–Tihai run-through; tune the tabla confidently.',
+      'Revise theory units 1–3; practice solo performance sequence, timed.',
+      'Revise theory units 4–5; practice accompaniment (Ektala/Chautala, vilambit & drut laya).',
+      'Revise weak talas flagged from the sample paper.',
+      'Final practical rehearsal — full solo + accompaniment run-through; light theory revision only.'
+    ],
+    vocal: [
+      'Theory Unit 1 — Alankar, Kan, Meend, Khatka, Murki, Gamak, Gram, Murchhana, Alap, Tana. Daily riyaz: sargam.',
+      'Theory Unit 2 — Time theory of Ragas, historical development. Practice: Bhairav vilambit khayal.',
+      'Theory Unit 3 — Sangeet Parijat; Faiyaz Khan, Bade Ghulam Ali Khan biographies. Practice: Bageshri khayal.',
+      'Theory Unit 4 — Jhaptala, Rupak, Dhamar notation; Tanpura tuning. Practice: Malkauns khayal.',
+      'Theory Unit 5 — Raga recognition from swara phrases. Practice: Tarana.',
+      'Consolidate all 5 units; full Vilambit + Drut Khayal in one chosen raga; tune Tanpura confidently.',
+      'Revise theory units 1–3; practice Dhamar with Dugun/Chaugun.',
+      'Revise theory units 4–5; practice raga identification drills.',
+      'Revise weak ragas flagged from the sample paper.',
+      'Final practical rehearsal — full khayal + tarana + dhamar run-through; light theory revision only.'
+    ],
+    guitar: [
+      'Theory Unit 1 — Gram, Murchhana, Alankar, Alap, Tana, Gamak, Meend, Kan, Krintan, Zamzama, Ghaseet, Sut. Daily riyaz: alankars.',
+      'Theory Unit 2 — Historical development of the Time Theory of Ragas. Practice: Bhairav aalap–jor–jhala.',
+      'Theory Unit 3 — Sangeet Ratnakar/Parijat; Inayat Khan, Mushtaq Ali Khan, Alauddin Khan. Practice: Bageshri gat.',
+      'Theory Unit 4 — Jhaptala/Rupak notation; tuning the instrument. Practice: Malkauns gat.',
+      'Theory Unit 5 — Raga recognition; notation of Bhairav/Bageshri/Malkauns. Practice: Razakhani & Masitkhani gat.',
+      'Consolidate all 5 units; full Aalap–Jor–Jhala + Gat with todas in one chosen raga; tune confidently.',
+      'Revise theory units 1–3; practice Gat with Jhala.',
+      'Revise theory units 4–5; practice raga identification + Theka recitation.',
+      'Revise weak ragas flagged from the sample paper.',
+      'Final practical rehearsal — full aalap + gat run-through; light theory revision only.'
+    ],
+    physical: [
+      'Management of Sporting Events + Children & Women in Sports',
+      'Yoga as a Preventive Measure for Lifestyle Diseases + Physical Education & Sports for CWSN',
+      'Sports & Nutrition + Test & Measurement in Sports',
+      'Physiology & Injuries in Sport + Biomechanics & Sports',
+      'Psychology & Sports + Training in Sports',
+      'Finish the practical file (3 practicals); full revision of all 10 units',
+      'Revise Units 1–5; practice diagram-based Biomechanics questions',
+      'Revise Units 6–10; practice case-study questions',
+      'Revise topics flagged weak from the sample paper',
+      'Final practical file review; light theory revision only'
+    ]
+  };
+
+  var BOSS_ELECTIVE_TEXT = {
+    cs: 'Computer Science full sample paper, timed',
+    tabla: 'Tabla full practice exam — theory + solo performance, timed',
+    vocal: 'Vocal full practice exam — theory + khayal performance, timed',
+    guitar: 'Guitar full practice exam — theory + gat performance, timed',
+    physical: 'Physical Education full sample paper, timed'
+  };
+
   // 7-day session template reused every week: which subject each study block covers.
-  // s1 = 3hr heavy session, s2 = 1.5hr theory session, s3 = 1.5hr English / revision
+  // s1 = 3hr heavy session (rotates Accountancy / elective), s2 = 1.5hr theory, s3 = 1.5hr English / revision
   var DAILY_TEMPLATE = [
-    {d:'Mon', s1:'acct', s2:'bst',   s3:'eng'},
-    {d:'Tue', s1:'cs',   s2:'macro', s3:'eng'},
-    {d:'Wed', s1:'acct', s2:'ied',   s3:'eng'},
-    {d:'Thu', s1:'cs',   s2:'bst',   s3:'rev'},
-    {d:'Fri', s1:'acct', s2:'macro', s3:'eng'},
-    {d:'Sat', s1:'cs',   s2:'ied',   s3:'rev'},
-    {d:'Sun', s1:'rev',  s2:null,    s3:null}
+    {d:'Mon', s1:'acct',     s2:'bst',   s3:'eng'},
+    {d:'Tue', s1:'elective', s2:'macro', s3:'eng'},
+    {d:'Wed', s1:'acct',     s2:'ied',   s3:'eng'},
+    {d:'Thu', s1:'elective', s2:'bst',   s3:'rev'},
+    {d:'Fri', s1:'acct',     s2:'macro', s3:'eng'},
+    {d:'Sat', s1:'elective', s2:'ied',   s3:'rev'},
+    {d:'Sun', s1:'rev',      s2:null,    s3:null}
   ];
 
-  var RANKS = [
-    [0,'Beginner'],[3,'Apprentice'],[6,'Scholar'],[9,'Achiever'],[11,'Topper'],[99,'Board Champion']
-  ];
-  function rankFor(level){
-    var r = RANKS[0][1];
-    for(var i=0;i<RANKS.length;i++){ if(level >= RANKS[i][0]) r = RANKS[i][1]; }
-    return r;
-  }
+  var RANKS = [[0,'Beginner'],[3,'Apprentice'],[6,'Scholar'],[9,'Achiever'],[11,'Topper'],[99,'Board Champion']];
+  function rankFor(level){ var r = RANKS[0][1]; for(var i=0;i<RANKS.length;i++){ if(level >= RANKS[i][0]) r = RANKS[i][1]; } return r; }
 
   function load(key, fb){ try{ var v = localStorage.getItem(key); return v ? JSON.parse(v) : fb; }catch(e){ return fb; } }
   function save(key, v){ try{ localStorage.setItem(key, JSON.stringify(v)); }catch(e){} }
 
-  var done = load('bq_done', {});       // { "w1-q0": true, "w1-b0": true, ... }
+  var done = load('bq_done', {});           // keyed "weekid-subjectkey" for quests, "weekid-boss-N" for boss items
   var streakData = load('bq_streak', {count:0, last:null});
+  var groupId = load('bq_group', 'cs');
+  if(GROUPS.every(function(g){ return g.id !== groupId; })) groupId = 'cs';
 
-  function questKey(wi, qi){ return WEEKS[wi].id + '-q' + qi; }
-  function bossKey(wi, bi){ return WEEKS[wi].id + '-b' + bi; }
+  function currentGroup(){ for(var i=0;i<GROUPS.length;i++){ if(GROUPS[i].id===groupId) return GROUPS[i]; } return GROUPS[GROUPS.length-1]; }
+  function visibleSubjects(){ return COMMON_SUBJECTS.concat([currentGroup().elective]); }
+
+  function qKey(weekId, subj){ return weekId + '-' + subj; }
+  function bKey(weekId, idx){ return weekId + '-boss' + idx; }
+  function electiveBossKey(weekId){ return weekId + '-boss-elective'; }
+
+  // returns the quest list for a week, including the synthetic elective quest
+  function weekQuests(wi){
+    var w = WEEKS[wi];
+    var list = w.quests.slice();
+    var elective = currentGroup().elective;
+    list.push({s: elective, t: ELECTIVE_WEEKS[elective][wi]});
+    return list;
+  }
+  function weekBoss(wi){
+    var w = WEEKS[wi];
+    var list = w.boss.slice();
+    if(w.electiveBoss){ list.push({t: BOSS_ELECTIVE_TEXT[currentGroup().elective], xp:50, elective:true}); }
+    return list;
+  }
 
   function totalXP(){
     var xp = 0;
     WEEKS.forEach(function(w, wi){
-      w.quests.forEach(function(q, qi){ if(done[questKey(wi,qi)]) xp += 10; });
-      w.boss.forEach(function(b, bi){ if(done[bossKey(wi,bi)]) xp += b.xp; });
+      weekQuests(wi).forEach(function(q){ if(done[qKey(w.id,q.s)]) xp += 10; });
+      weekBoss(wi).forEach(function(b, bi){
+        var key = b.elective ? electiveBossKey(w.id) : bKey(w.id, bi);
+        if(done[key]) xp += b.xp;
+      });
     });
     return xp;
   }
@@ -295,11 +404,11 @@ body{
 
   function weekProgress(wi){
     var w = WEEKS[wi];
-    var totalTasks = w.quests.length + w.boss.length;
-    var doneTasks = 0;
-    w.quests.forEach(function(q, qi){ if(done[questKey(wi,qi)]) doneTasks++; });
-    w.boss.forEach(function(b, bi){ if(done[bossKey(wi,bi)]) doneTasks++; });
-    return totalTasks ? doneTasks/totalTasks : 0;
+    var q = weekQuests(wi), b = weekBoss(wi);
+    var total = q.length + b.length, doneCount = 0;
+    q.forEach(function(item){ if(done[qKey(w.id,item.s)]) doneCount++; });
+    b.forEach(function(item,bi){ var key = item.elective ? electiveBossKey(w.id) : bKey(w.id,bi); if(done[key]) doneCount++; });
+    return total ? doneCount/total : 0;
   }
 
   function todayStr(){ var d = new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
@@ -308,29 +417,48 @@ body{
     if(streakData.last === today) return;
     var y = new Date(); y.setDate(y.getDate()-1);
     var yesterday = y.getFullYear()+'-'+(y.getMonth()+1)+'-'+y.getDate();
-    if(streakData.last === yesterday){ streakData.count += 1; }
-    else { streakData.count = 1; }
+    streakData.count = (streakData.last === yesterday) ? streakData.count+1 : 1;
     streakData.last = today;
     save('bq_streak', streakData);
   }
 
-  // current week by date (Phase start Oct 27 2026)
   function currentWeekIndex(){
-    var start = new Date(2026,9,27); // month 0-indexed: Oct=9
-    var now = new Date();
-    var diffDays = Math.floor((now - start) / 86400000);
+    var start = new Date(2026,9,27);
+    var diffDays = Math.floor((new Date() - start) / 86400000);
     var idx = Math.floor(diffDays/7);
-    if(idx < 0) idx = 0;
-    if(idx > WEEKS.length-1) idx = WEEKS.length-1;
+    if(idx < 0) idx = 0; if(idx > WEEKS.length-1) idx = WEEKS.length-1;
     return idx;
   }
 
   var pathEl = document.getElementById('path');
   var panelsEl = document.getElementById('panels');
+  var groupBarEl = document.getElementById('group-bar');
   var curWeek = currentWeekIndex();
   var openPanel = null;
 
+  function renderGroupBar(){
+    groupBarEl.innerHTML = GROUPS.map(function(g){
+      return '<button class="group-chip'+(g.id===groupId?' active':'')+'" data-g="'+g.id+'">'+g.label+'</button>';
+    }).join('');
+    groupBarEl.querySelectorAll('.group-chip').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        groupId = btn.dataset.g; save('bq_group', groupId);
+        openPanel = null; panelsEl.innerHTML = '';
+        renderGroupBar(); render();
+      });
+    });
+  }
+
+  function renderHudSubjects(){
+    var el = document.getElementById('hud-subjects');
+    el.innerHTML = visibleSubjects().map(function(s){
+      var m = SUBJECT_META[s];
+      return '<span class="hud-subj-pill" style="background:'+m.color+'22;color:'+m.color+'">'+m.label+'</span>';
+    }).join('');
+  }
+
   function render(){
+    renderHudSubjects();
     var xp = totalXP();
     var level = levelFor(xp);
     var xpBase = (level-1)*100, xpNext = level*100;
@@ -347,7 +475,6 @@ body{
     WEEKS.forEach(function(w, wi){ if(weekProgress(wi) >= 1) completedWeeks++; });
     document.getElementById('path-fill').style.height = (completedWeeks / WEEKS.length * 100) + '%';
 
-    // nodes
     pathEl.querySelectorAll('.node').forEach(function(n){ n.remove(); });
     WEEKS.forEach(function(w, wi){
       var prog = weekProgress(wi);
@@ -366,24 +493,25 @@ body{
   }
 
   function subjectText(wi, subjKey){
-    var w = WEEKS[wi];
-    for(var i=0;i<w.quests.length;i++){ if(w.quests[i].s === subjKey) return w.quests[i].t; }
+    var q = weekQuests(wi);
+    for(var i=0;i<q.length;i++){ if(q[i].s === subjKey) return q[i].t; }
     return '';
   }
   function sessionDone(wi, subjKey){
     var w = WEEKS[wi];
-    for(var i=0;i<w.quests.length;i++){ if(w.quests[i].s === subjKey) return !!done[questKey(wi,i)]; }
-    return false;
+    return !!done[qKey(w.id, subjKey)];
   }
   function buildDailyPlan(wi){
     var todayLabels = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     var todayLabel = todayLabels[new Date().getDay()];
+    var elective = currentGroup().elective;
     var html = '<div class="daily-section"><h3>📅 Daily Plan</h3>';
     DAILY_TEMPLATE.forEach(function(day){
       html += '<div class="day-row'+(day.d===todayLabel && wi===curWeek ? ' today':'')+'"><div class="day-label">'+day.d+'</div><div class="day-sessions">';
-      [['s1','3h','AM'],['s2','1.5h',''],['s3','1.5h','']].forEach(function(slot){
+      [['s1','3h'],['s2','1.5h'],['s3','1.5h']].forEach(function(slot){
         var key = day[slot[0]];
         if(!key) return;
+        if(key === 'elective') key = elective;
         if(key === 'rev'){
           var isFullRev = slot[0]==='s1' && !day.s2;
           html += '<div class="sess-chip"><span class="sess-time">'+slot[1]+'</span><span class="sess-subj" style="color:var(--muted)">Revision</span><span>'+
@@ -407,24 +535,24 @@ body{
     if(openPanel === wi){ openPanel = null; return; }
     openPanel = wi;
     var w = WEEKS[wi];
+    var quests = weekQuests(wi), boss = weekBoss(wi);
     var html = '<div class="panel open"><h2>'+w.title+' — '+w.phase+'</h2><div class="dates">'+w.dates+'</div>';
-    w.quests.forEach(function(q, qi){
-      var k = questKey(wi,qi);
+    quests.forEach(function(q){
+      var k = qKey(w.id, q.s);
       var meta = SUBJECT_META[q.s];
       html += '<div class="quest'+(done[k]?' done':'')+'">'+
-        '<input type="checkbox" data-wi="'+wi+'" data-qi="'+qi+'" '+(done[k]?'checked':'')+'>'+
+        '<input type="checkbox" data-week="'+w.id+'" data-subj="'+q.s+'" '+(done[k]?'checked':'')+'>'+
         '<div class="quest-body"><span class="quest-subject" style="background:'+meta.color+'22;color:'+meta.color+'">'+meta.label+'</span>'+
         '<div class="quest-text">'+q.t+'</div></div>'+
         '<div class="quest-xp">+10</div></div>';
     });
     html += buildDailyPlan(wi);
-
-    if(w.boss.length){
+    if(boss.length){
       html += '<div class="boss-section"><h3>⚔ Boss Battles</h3>';
-      w.boss.forEach(function(b, bi){
-        var k = bossKey(wi,bi);
+      boss.forEach(function(b, bi){
+        var k = b.elective ? electiveBossKey(w.id) : bKey(w.id,bi);
         html += '<div class="quest boss'+(done[k]?' done':'')+'">'+
-          '<input type="checkbox" data-wi="'+wi+'" data-bi="'+bi+'" '+(done[k]?'checked':'')+'>'+
+          '<input type="checkbox" data-week="'+w.id+'" data-boss="'+(b.elective?'elective':bi)+'" '+(done[k]?'checked':'')+'>'+
           '<div class="quest-body"><div class="quest-text">'+b.t+'</div></div>'+
           '<div class="quest-xp">+'+b.xp+'</div></div>';
       });
@@ -435,28 +563,26 @@ body{
 
     panelsEl.querySelectorAll('input[type=checkbox]').forEach(function(cb){
       cb.addEventListener('change', function(){
-        var wi2 = +cb.dataset.wi;
+        var weekId = cb.dataset.week;
         var xpBefore = totalXP();
-        if(cb.dataset.qi !== undefined && cb.dataset.qi !== ''){
-          done[questKey(wi2, +cb.dataset.qi)] = cb.checked;
+        if(cb.dataset.subj){
+          done[qKey(weekId, cb.dataset.subj)] = cb.checked;
         } else {
-          done[bossKey(wi2, +cb.dataset.bi)] = cb.checked;
+          var bval = cb.dataset.boss;
+          var key = bval === 'elective' ? electiveBossKey(weekId) : bKey(weekId, +bval);
+          done[key] = cb.checked;
         }
         save('bq_done', done);
         if(cb.checked) markActivity();
         var xpAfter = totalXP();
         if(levelFor(xpAfter) > levelFor(xpBefore)) showLevelUp(levelFor(xpAfter));
         render();
-        togglePanelRefresh(wi2);
+        var reopenAt = wi;
+        openPanel = null;
+        togglePanel(reopenAt);
       });
     });
     document.getElementById('close-panel').addEventListener('click', function(){ openPanel=null; panelsEl.innerHTML=''; });
-  }
-  function togglePanelRefresh(wi){
-    // redraw panel contents in place without losing scroll
-    var wasOpen = openPanel;
-    openPanel = null;
-    togglePanel(wasOpen === null ? wi : wasOpen);
   }
 
   function showLevelUp(level){
@@ -479,10 +605,8 @@ body{
     render();
   });
 
+  renderGroupBar();
   render();
-  // auto-open current week on load
   togglePanel(curWeek);
 })();
 </script>
-
-</body></html>
