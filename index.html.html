@@ -1,0 +1,488 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Boards Quest</title>
+<style>
+/* layout: a vertical mountain-path journey of 10 week-nodes; tapping a node opens its quest panel below */
+:root{
+  --bg:#0b0e1a; --bg2:#10142480; --surface:#141a2e; --surface2:#1b2238;
+  --fg:#eef0fa; --muted:#8891b5; --line:#2a3251;
+  --gold:#e8b94a; --path-done:#e8b94a; --path-todo:#2a3251;
+  --acct:#e8b94a; --bst:#4fd1c5; --macro:#f2789f; --ied:#9b8cf2; --eng:#6fb8f0; --cs:#7fd858;
+  --boss:#ef5e5e;
+  --font-display:'Press Start 2P',monospace;
+  --font-body:'Space Mono','JetBrains Mono',ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;}
+body{
+  background:
+    radial-gradient(ellipse 600px 300px at 20% 10%, #1c2444 0%, transparent 60%),
+    radial-gradient(ellipse 500px 260px at 85% 30%, #231a3a 0%, transparent 55%),
+    var(--bg);
+  color:var(--fg); font-family:var(--font-body); min-height:100vh;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:20px 60px;
+}
+.wrap{max-width:640px;margin:0 auto;}
+
+/* header / stats bar */
+.hud{
+  background:var(--surface); border:2px solid var(--line); border-radius:14px;
+  padding:16px; margin-bottom:22px; position:sticky; top:max(10px, env(safe-area-inset-top,0px));
+  z-index:5; box-shadow:0 8px 24px #00000066;
+}
+.hud-top{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;}
+.title-badge{font-family:var(--font-display); font-size:0.62rem; color:var(--gold); letter-spacing:0.02em;}
+.title-badge .sub{display:block; color:var(--muted); font-size:0.52rem; margin-top:4px; font-family:var(--font-body); letter-spacing:0;}
+.streak{display:flex; align-items:center; gap:6px; font-size:0.85rem; color:#ffb355; font-weight:700;}
+.xp-row{display:flex; align-items:center; gap:10px;}
+.xp-bar-track{flex:1; height:12px; background:var(--surface2); border-radius:99px; overflow:hidden; border:1px solid var(--line);}
+.xp-bar-fill{height:100%; background:linear-gradient(90deg,#e8b94a,#ffd98a); border-radius:99px; transition:width .4s ease;}
+.xp-label{font-size:0.7rem; color:var(--muted); white-space:nowrap; font-variant-numeric:tabular-nums;}
+
+/* path */
+.path{position:relative; padding:10px 0 10px 50px;}
+.path::before{
+  content:""; position:absolute; left:24px; top:10px; bottom:10px; width:3px;
+  background:linear-gradient(var(--path-todo),var(--path-todo));
+  border-radius:2px;
+}
+.path-fill{position:absolute; left:24px; bottom:10px; width:3px; background:linear-gradient(var(--gold),#ffd98a); border-radius:2px; transition:height .4s ease;}
+.node{position:relative; margin-bottom:26px; cursor:pointer;}
+.node:last-child{margin-bottom:0;}
+.node-dot{
+  position:absolute; left:-50px; top:0; width:44px; height:44px; border-radius:50%;
+  background:var(--surface2); border:3px solid var(--line); display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-size:0.75rem; color:var(--muted); flex-shrink:0; z-index:2;
+}
+.node.complete .node-dot{border-color:var(--gold); background:#2a230f; color:var(--gold);}
+.node.current .node-dot{border-color:var(--gold); box-shadow:0 0 0 4px #e8b94a33; color:var(--gold);}
+.node-card{
+  background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px 14px;
+  margin-left:4px; transition:border-color .2s;
+}
+.node.current .node-card{border-color:var(--gold);}
+.node-head{display:flex; justify-content:space-between; align-items:baseline; gap:8px; flex-wrap:wrap;}
+.node-title{font-weight:700; font-size:0.95rem;}
+.node-dates{color:var(--muted); font-size:0.72rem;}
+.node-phase{display:inline-block; font-size:0.62rem; color:var(--gold); text-transform:uppercase; letter-spacing:.05em; margin-top:3px;}
+.node-progress{margin-top:8px; height:6px; background:var(--surface2); border-radius:99px; overflow:hidden;}
+.node-progress-fill{height:100%; background:var(--gold); border-radius:99px;}
+
+/* quest panel */
+.panel{
+  display:none; background:var(--surface); border:2px solid var(--gold); border-radius:14px;
+  padding:18px; margin:14px 0 26px; box-shadow:0 10px 30px #00000066;
+}
+.panel.open{display:block;}
+.panel h2{margin:0 0 2px; font-size:1.1rem;}
+.panel .dates{color:var(--muted); font-size:0.78rem; margin-bottom:14px;}
+.quest{
+  display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid var(--line);
+}
+.quest:last-of-type{border-bottom:none;}
+.quest input[type=checkbox]{width:20px; height:20px; margin-top:2px; flex-shrink:0; accent-color:var(--gold); cursor:pointer;}
+.quest-body{flex:1; min-width:0;}
+.quest-subject{
+  display:inline-block; font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+  padding:2px 8px; border-radius:99px; margin-bottom:4px;
+}
+.quest-text{font-size:0.88rem; line-height:1.4;}
+.quest.done .quest-text{color:var(--muted); text-decoration:line-through;}
+.quest-xp{font-size:0.68rem; color:var(--gold); font-weight:700; flex-shrink:0; white-space:nowrap; font-variant-numeric:tabular-nums;}
+.daily-section{margin-top:16px; padding-top:14px; border-top:1px solid var(--line);}
+.daily-section h3{
+  font-family:var(--font-display); font-size:0.6rem; color:var(--gold); margin:0 0 10px; letter-spacing:.03em;
+}
+.day-row{display:flex; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); align-items:flex-start;}
+.day-row:last-child{border-bottom:none;}
+.day-label{
+  width:38px; flex-shrink:0; font-family:var(--font-display); font-size:0.56rem; color:var(--muted); padding-top:3px;
+}
+.day-row.today .day-label{color:var(--gold);}
+.day-sessions{flex:1; min-width:0; display:flex; flex-direction:column; gap:5px;}
+.sess-chip{display:flex; align-items:baseline; gap:6px; font-size:0.78rem; line-height:1.35;}
+.sess-time{font-size:0.62rem; color:var(--muted); flex-shrink:0; width:42px; font-variant-numeric:tabular-nums;}
+.sess-subj{font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; flex-shrink:0;}
+.sess-check{flex-shrink:0; font-size:0.72rem;}
+.boss-section{margin-top:16px; padding-top:14px; border-top:2px dashed var(--boss);}
+.boss-section h3{
+  font-family:var(--font-display); font-size:0.6rem; color:var(--boss); margin:0 0 10px; letter-spacing:.03em;
+}
+.quest.boss .quest-xp{color:var(--boss);}
+.close-panel{
+  margin-top:14px; width:100%; padding:10px; background:var(--surface2); border:1px solid var(--line);
+  color:var(--muted); border-radius:8px; font-family:var(--font-body); font-size:0.8rem; cursor:pointer;
+}
+
+.note{color:var(--muted); font-size:0.72rem; margin-top:30px; line-height:1.6; text-align:center;}
+.reset-btn{
+  display:block; margin:18px auto 0; background:none; border:1px solid var(--line); color:var(--muted);
+  padding:7px 14px; border-radius:8px; font-size:0.72rem; cursor:pointer; font-family:var(--font-body);
+}
+
+/* level-up toast */
+#levelup{
+  position:fixed; left:50%; top:16%; transform:translate(-50%,-10px); z-index:50;
+  background:var(--surface); border:2px solid var(--gold); border-radius:14px; padding:18px 26px;
+  text-align:center; opacity:0; pointer-events:none; transition:opacity .3s, transform .3s;
+  box-shadow:0 10px 40px #000000aa;
+}
+#levelup.show{opacity:1; transform:translate(-50%,0);}
+#levelup .big{font-family:var(--font-display); font-size:1rem; color:var(--gold); margin-bottom:6px;}
+#levelup .small{color:var(--muted); font-size:0.78rem;}
+</style>
+
+<div class="wrap">
+  <div class="hud">
+    <div class="hud-top">
+      <div class="title-badge">LEVEL <span id="hud-level">1</span><span class="sub" id="hud-rank">Beginner</span></div>
+      <div class="streak">🔥 <span id="hud-streak">0</span>-day streak</div>
+    </div>
+    <div class="xp-row">
+      <div class="xp-bar-track"><div class="xp-bar-fill" id="xp-fill" style="width:0%"></div></div>
+      <div class="xp-label"><span id="xp-current">0</span> / <span id="xp-needed">100</span> XP</div>
+    </div>
+  </div>
+
+  <div class="path" id="path">
+    <div class="path-fill" id="path-fill" style="height:0%"></div>
+    <!-- nodes injected -->
+  </div>
+
+  <div id="panels"></div>
+
+  <p class="note">67 days, 6 subjects, one goal: 98%+.<br>Tap a week on the path to open its quests.</p>
+  <button class="reset-btn" id="reset-btn">Reset all progress</button>
+</div>
+
+<div id="levelup"><div class="big">LEVEL UP!</div><div class="small" id="levelup-text"></div></div>
+
+<script>
+(function(){
+  var SUBJECT_META = {
+    acct:  {label:'Accountancy', color:'var(--acct)'},
+    bst:   {label:'BST', color:'var(--bst)'},
+    macro: {label:'Macroeconomics', color:'var(--macro)'},
+    ied:   {label:'IED', color:'var(--ied)'},
+    eng:   {label:'English', color:'var(--eng)'},
+    cs:    {label:'Computer Sci', color:'var(--cs)'}
+  };
+
+  var WEEKS = [
+    {id:'w1', title:'Week 1', dates:'Oct 27 – Nov 2', phase:'Phase 1 · First Pass', quests:[
+      {s:'acct', t:'Partnership fundamentals, P&L appropriation, goodwill valuation'},
+      {s:'bst', t:'Nature & Significance of Management, Principles of Management'},
+      {s:'macro', t:'National Income and Related Aggregates'},
+      {s:'ied', t:'Eve of independence; development experience 1947–90 (Part 1)'},
+      {s:'eng', t:'Reading practice + Notice/Invitation + Flamingo: The Last Lesson, Lost Spring'},
+      {s:'cs', t:'Python revision — functions, modules, arguments, scope'}
+    ], boss:[]},
+    {id:'w2', title:'Week 2', dates:'Nov 3 – 9', phase:'Phase 1 · First Pass', quests:[
+      {s:'acct', t:'Partnership — admission of a partner'},
+      {s:'bst', t:'Business Environment, Planning'},
+      {s:'macro', t:'Money and Banking'},
+      {s:'ied', t:'Economic reforms since 1991 (LPG)'},
+      {s:'eng', t:'Letter writing (job application) + Flamingo: Deep Water, The Rattrap'},
+      {s:'cs', t:'Exception handling, text file handling'}
+    ], boss:[]},
+    {id:'w3', title:'Week 3', dates:'Nov 10 – 16', phase:'Phase 1 · First Pass', quests:[
+      {s:'acct', t:'Partnership — retirement and death of a partner'},
+      {s:'bst', t:'Organising, Staffing'},
+      {s:'macro', t:'Determination of Income & Employment — consumption function'},
+      {s:'ied', t:'Current challenges — poverty, human capital formation'},
+      {s:'eng', t:'Letter to editor + article + Flamingo: Indigo; poetry: My Mother at Sixty Six, Keeping Quiet'},
+      {s:'cs', t:'File handling — binary files (pickle), CSV files'}
+    ], boss:[]},
+    {id:'w4', title:'Week 4', dates:'Nov 17 – 23', phase:'Phase 1 · First Pass', quests:[
+      {s:'acct', t:'Partnership — dissolution of a firm'},
+      {s:'bst', t:'Directing, Controlling'},
+      {s:'macro', t:'Determination of Income & Employment — multiplier, excess/deficient demand'},
+      {s:'ied', t:'Current challenges — rural development, employment'},
+      {s:'eng', t:'Report writing + Flamingo poetry: A Thing of Beauty; Vistas: The Third Level, The Tiger King'},
+      {s:'cs', t:'Stack data structure — push/pop implementation'}
+    ], boss:[]},
+    {id:'w5', title:'Week 5', dates:'Nov 24 – 30', phase:'Phase 1 · First Pass', quests:[
+      {s:'acct', t:'Accounting for companies — issue of shares'},
+      {s:'bst', t:'Financial Management, Financial Markets'},
+      {s:'macro', t:'Government Budget and the Economy'},
+      {s:'ied', t:'Current challenges — infrastructure, environment & sustainable development'},
+      {s:'eng', t:'Vistas: Journey to the End of the Earth, The Enemy + first pass of remaining lessons'},
+      {s:'cs', t:'Computer Networks — full unit'}
+    ], boss:[]},
+    {id:'w6', title:'Week 6', dates:'Dec 1 – 7', phase:'Phase 1 · First Pass', quests:[
+      {s:'acct', t:'Debentures, company final accounts, financial statement analysis, cash flow'},
+      {s:'bst', t:'Marketing Management, Consumer Protection'},
+      {s:'macro', t:'Balance of Payments'},
+      {s:'ied', t:'Comparative development — India, Pakistan, China'},
+      {s:'eng', t:'Finish literature revision pass'},
+      {s:'cs', t:'Database Management — SQL, Python–SQL connectivity'}
+    ], boss:[{t:'Timed Reading + Writing paper, full exam conditions', xp:50}]},
+    {id:'w7', title:'Week 7', dates:'Dec 8 – 14', phase:'Phase 2 · Revision Round 1', quests:[
+      {s:'acct', t:'Redo every numerical type from memory'},
+      {s:'bst', t:'Quick revise Part A chapters'},
+      {s:'macro', t:'Quick revise National Income & Money and Banking'},
+      {s:'ied', t:'Quick revise Development Experience & Reforms'},
+      {s:'eng', t:'One Reading comprehension set, timed'},
+      {s:'cs', t:'Rewrite every program type without notes'}
+    ], boss:[{t:'Accountancy full sample paper, timed', xp:50},{t:'Computer Science full sample paper, timed', xp:50}]},
+    {id:'w8', title:'Week 8', dates:'Dec 15 – 21', phase:'Phase 2 · Revision Round 1', quests:[
+      {s:'acct', t:'Practice 5 mixed numericals'},
+      {s:'bst', t:'Full revision, all chapters'},
+      {s:'macro', t:'Full revision, all chapters'},
+      {s:'ied', t:'Full revision, all chapters'},
+      {s:'eng', t:'One Writing Skills set — letter/article/report'},
+      {s:'cs', t:'Practice 2 full programs + SQL queries'}
+    ], boss:[{t:'BST sample paper, timed', xp:50},{t:'Macroeconomics sample paper, timed', xp:50},{t:'IED sample paper, timed', xp:50}]},
+    {id:'w9', title:'Week 9', dates:'Dec 22 – 28', phase:'Phase 2 · Weak Areas', quests:[
+      {s:'acct', t:'Revise topics flagged weak from sample papers'},
+      {s:'bst', t:'Revise topics flagged weak from sample papers'},
+      {s:'macro', t:'Revise topics flagged weak from sample papers'},
+      {s:'ied', t:'Revise topics flagged weak from sample papers'},
+      {s:'eng', t:'Revise weak literature/writing areas'},
+      {s:'cs', t:'Revise topics flagged weak from sample papers'}
+    ], boss:[{t:'English full mock — Reading + Writing + Literature, timed', xp:50}]},
+    {id:'w10', title:'Week 10', dates:'Dec 29 – 31', phase:'Phase 2 · Consolidate', quests:[
+      {s:'acct', t:'Light final revision only — no new topics'},
+      {s:'bst', t:'Light final revision only — no new topics'},
+      {s:'macro', t:'Light final revision only — no new topics'},
+      {s:'ied', t:'Light final revision only — no new topics'},
+      {s:'eng', t:'Light final revision only — no new topics'},
+      {s:'cs', t:'Light final revision only — no new topics'}
+    ], boss:[{t:'Final mock — weakest subject #1', xp:50},{t:'Final mock — weakest subject #2', xp:50}]}
+  ];
+
+  // 7-day session template reused every week: which subject each study block covers.
+  // s1 = 3hr heavy session, s2 = 1.5hr theory session, s3 = 1.5hr English / revision
+  var DAILY_TEMPLATE = [
+    {d:'Mon', s1:'acct', s2:'bst',   s3:'eng'},
+    {d:'Tue', s1:'cs',   s2:'macro', s3:'eng'},
+    {d:'Wed', s1:'acct', s2:'ied',   s3:'eng'},
+    {d:'Thu', s1:'cs',   s2:'bst',   s3:'rev'},
+    {d:'Fri', s1:'acct', s2:'macro', s3:'eng'},
+    {d:'Sat', s1:'cs',   s2:'ied',   s3:'rev'},
+    {d:'Sun', s1:'rev',  s2:null,    s3:null}
+  ];
+
+  var RANKS = [
+    [0,'Beginner'],[3,'Apprentice'],[6,'Scholar'],[9,'Achiever'],[11,'Topper'],[99,'Board Champion']
+  ];
+  function rankFor(level){
+    var r = RANKS[0][1];
+    for(var i=0;i<RANKS.length;i++){ if(level >= RANKS[i][0]) r = RANKS[i][1]; }
+    return r;
+  }
+
+  function load(key, fb){ try{ var v = localStorage.getItem(key); return v ? JSON.parse(v) : fb; }catch(e){ return fb; } }
+  function save(key, v){ try{ localStorage.setItem(key, JSON.stringify(v)); }catch(e){} }
+
+  var done = load('bq_done', {});       // { "w1-q0": true, "w1-b0": true, ... }
+  var streakData = load('bq_streak', {count:0, last:null});
+
+  function questKey(wi, qi){ return WEEKS[wi].id + '-q' + qi; }
+  function bossKey(wi, bi){ return WEEKS[wi].id + '-b' + bi; }
+
+  function totalXP(){
+    var xp = 0;
+    WEEKS.forEach(function(w, wi){
+      w.quests.forEach(function(q, qi){ if(done[questKey(wi,qi)]) xp += 10; });
+      w.boss.forEach(function(b, bi){ if(done[bossKey(wi,bi)]) xp += b.xp; });
+    });
+    return xp;
+  }
+  function levelFor(xp){ return Math.floor(xp/100) + 1; }
+
+  function weekProgress(wi){
+    var w = WEEKS[wi];
+    var totalTasks = w.quests.length + w.boss.length;
+    var doneTasks = 0;
+    w.quests.forEach(function(q, qi){ if(done[questKey(wi,qi)]) doneTasks++; });
+    w.boss.forEach(function(b, bi){ if(done[bossKey(wi,bi)]) doneTasks++; });
+    return totalTasks ? doneTasks/totalTasks : 0;
+  }
+
+  function todayStr(){ var d = new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+  function markActivity(){
+    var today = todayStr();
+    if(streakData.last === today) return;
+    var y = new Date(); y.setDate(y.getDate()-1);
+    var yesterday = y.getFullYear()+'-'+(y.getMonth()+1)+'-'+y.getDate();
+    if(streakData.last === yesterday){ streakData.count += 1; }
+    else { streakData.count = 1; }
+    streakData.last = today;
+    save('bq_streak', streakData);
+  }
+
+  // current week by date (Phase start Oct 27 2026)
+  function currentWeekIndex(){
+    var start = new Date(2026,9,27); // month 0-indexed: Oct=9
+    var now = new Date();
+    var diffDays = Math.floor((now - start) / 86400000);
+    var idx = Math.floor(diffDays/7);
+    if(idx < 0) idx = 0;
+    if(idx > WEEKS.length-1) idx = WEEKS.length-1;
+    return idx;
+  }
+
+  var pathEl = document.getElementById('path');
+  var panelsEl = document.getElementById('panels');
+  var curWeek = currentWeekIndex();
+  var openPanel = null;
+
+  function render(){
+    var xp = totalXP();
+    var level = levelFor(xp);
+    var xpBase = (level-1)*100, xpNext = level*100;
+    var pct = ((xp - xpBase) / (xpNext - xpBase)) * 100;
+
+    document.getElementById('hud-level').textContent = level;
+    document.getElementById('hud-rank').textContent = rankFor(level);
+    document.getElementById('xp-current').textContent = xp;
+    document.getElementById('xp-needed').textContent = xpNext;
+    document.getElementById('xp-fill').style.width = pct + '%';
+    document.getElementById('hud-streak').textContent = streakData.count;
+
+    var completedWeeks = 0;
+    WEEKS.forEach(function(w, wi){ if(weekProgress(wi) >= 1) completedWeeks++; });
+    document.getElementById('path-fill').style.height = (completedWeeks / WEEKS.length * 100) + '%';
+
+    // nodes
+    pathEl.querySelectorAll('.node').forEach(function(n){ n.remove(); });
+    WEEKS.forEach(function(w, wi){
+      var prog = weekProgress(wi);
+      var node = document.createElement('div');
+      node.className = 'node' + (prog>=1 ? ' complete':'') + (wi===curWeek ? ' current':'');
+      node.innerHTML =
+        '<div class="node-dot">'+(prog>=1 ? '✓' : (wi+1))+'</div>'+
+        '<div class="node-card">'+
+          '<div class="node-head"><span class="node-title">'+w.title+'</span><span class="node-dates">'+w.dates+'</span></div>'+
+          '<span class="node-phase">'+w.phase+'</span>'+
+          '<div class="node-progress"><div class="node-progress-fill" style="width:'+Math.round(prog*100)+'%"></div></div>'+
+        '</div>';
+      node.addEventListener('click', function(){ togglePanel(wi); });
+      pathEl.appendChild(node);
+    });
+  }
+
+  function subjectText(wi, subjKey){
+    var w = WEEKS[wi];
+    for(var i=0;i<w.quests.length;i++){ if(w.quests[i].s === subjKey) return w.quests[i].t; }
+    return '';
+  }
+  function sessionDone(wi, subjKey){
+    var w = WEEKS[wi];
+    for(var i=0;i<w.quests.length;i++){ if(w.quests[i].s === subjKey) return !!done[questKey(wi,i)]; }
+    return false;
+  }
+  function buildDailyPlan(wi){
+    var todayLabels = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    var todayLabel = todayLabels[new Date().getDay()];
+    var html = '<div class="daily-section"><h3>📅 Daily Plan</h3>';
+    DAILY_TEMPLATE.forEach(function(day){
+      html += '<div class="day-row'+(day.d===todayLabel && wi===curWeek ? ' today':'')+'"><div class="day-label">'+day.d+'</div><div class="day-sessions">';
+      [['s1','3h','AM'],['s2','1.5h',''],['s3','1.5h','']].forEach(function(slot){
+        var key = day[slot[0]];
+        if(!key) return;
+        if(key === 'rev'){
+          var isFullRev = slot[0]==='s1' && !day.s2;
+          html += '<div class="sess-chip"><span class="sess-time">'+slot[1]+'</span><span class="sess-subj" style="color:var(--muted)">Revision</span><span>'+
+            (isFullRev ? 'Review every subject’s notes this week, redo one problem from each, rest.' : 'Revisit today’s weak spots from the last few days.')+'</span></div>';
+          return;
+        }
+        var meta = SUBJECT_META[key];
+        var text = subjectText(wi, key);
+        var isDone = sessionDone(wi, key);
+        html += '<div class="sess-chip"><span class="sess-time">'+slot[1]+'</span><span class="sess-subj" style="color:'+meta.color+'">'+meta.label+'</span><span>'+text+'</span>'+
+          (isDone ? '<span class="sess-check">✓</span>' : '')+'</div>';
+      });
+      html += '</div></div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function togglePanel(wi){
+    panelsEl.innerHTML = '';
+    if(openPanel === wi){ openPanel = null; return; }
+    openPanel = wi;
+    var w = WEEKS[wi];
+    var html = '<div class="panel open"><h2>'+w.title+' — '+w.phase+'</h2><div class="dates">'+w.dates+'</div>';
+    w.quests.forEach(function(q, qi){
+      var k = questKey(wi,qi);
+      var meta = SUBJECT_META[q.s];
+      html += '<div class="quest'+(done[k]?' done':'')+'">'+
+        '<input type="checkbox" data-wi="'+wi+'" data-qi="'+qi+'" '+(done[k]?'checked':'')+'>'+
+        '<div class="quest-body"><span class="quest-subject" style="background:'+meta.color+'22;color:'+meta.color+'">'+meta.label+'</span>'+
+        '<div class="quest-text">'+q.t+'</div></div>'+
+        '<div class="quest-xp">+10</div></div>';
+    });
+    html += buildDailyPlan(wi);
+
+    if(w.boss.length){
+      html += '<div class="boss-section"><h3>⚔ Boss Battles</h3>';
+      w.boss.forEach(function(b, bi){
+        var k = bossKey(wi,bi);
+        html += '<div class="quest boss'+(done[k]?' done':'')+'">'+
+          '<input type="checkbox" data-wi="'+wi+'" data-bi="'+bi+'" '+(done[k]?'checked':'')+'>'+
+          '<div class="quest-body"><div class="quest-text">'+b.t+'</div></div>'+
+          '<div class="quest-xp">+'+b.xp+'</div></div>';
+      });
+      html += '</div>';
+    }
+    html += '<button class="close-panel" id="close-panel">Close</button></div>';
+    panelsEl.innerHTML = html;
+
+    panelsEl.querySelectorAll('input[type=checkbox]').forEach(function(cb){
+      cb.addEventListener('change', function(){
+        var wi2 = +cb.dataset.wi;
+        var xpBefore = totalXP();
+        if(cb.dataset.qi !== undefined && cb.dataset.qi !== ''){
+          done[questKey(wi2, +cb.dataset.qi)] = cb.checked;
+        } else {
+          done[bossKey(wi2, +cb.dataset.bi)] = cb.checked;
+        }
+        save('bq_done', done);
+        if(cb.checked) markActivity();
+        var xpAfter = totalXP();
+        if(levelFor(xpAfter) > levelFor(xpBefore)) showLevelUp(levelFor(xpAfter));
+        render();
+        togglePanelRefresh(wi2);
+      });
+    });
+    document.getElementById('close-panel').addEventListener('click', function(){ openPanel=null; panelsEl.innerHTML=''; });
+  }
+  function togglePanelRefresh(wi){
+    // redraw panel contents in place without losing scroll
+    var wasOpen = openPanel;
+    openPanel = null;
+    togglePanel(wasOpen === null ? wi : wasOpen);
+  }
+
+  function showLevelUp(level){
+    var el = document.getElementById('levelup');
+    document.getElementById('levelup-text').textContent = 'Level ' + level + ' · ' + rankFor(level);
+    el.classList.add('show');
+    setTimeout(function(){ el.classList.remove('show'); }, 2200);
+  }
+
+  document.getElementById('reset-btn').addEventListener('click', function(){
+    var btn = this;
+    if(btn.textContent.indexOf('Sure') === -1){
+      btn.textContent = 'Sure? Tap again to reset';
+      setTimeout(function(){ btn.textContent = 'Reset all progress'; }, 3000);
+      return;
+    }
+    done = {}; streakData = {count:0,last:null};
+    save('bq_done', done); save('bq_streak', streakData);
+    panelsEl.innerHTML=''; openPanel=null; btn.textContent='Reset all progress';
+    render();
+  });
+
+  render();
+  // auto-open current week on load
+  togglePanel(curWeek);
+})();
+</script>
+
+</body></html>
