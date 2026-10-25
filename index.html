@@ -103,6 +103,12 @@ body{
 .quest-text{font-size:0.88rem; line-height:1.4;}
 .quest.done .quest-text{color:var(--muted); text-decoration:line-through;}
 .quest-xp{font-size:0.68rem; color:var(--gold); font-weight:700; flex-shrink:0; white-space:nowrap; font-variant-numeric:tabular-nums;}
+.quest-notes{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;}
+.quest-notes a{
+  display:inline-flex; align-items:center; gap:4px; font-size:0.68rem; color:var(--gold); text-decoration:none;
+  border:1px solid var(--line); padding:3px 8px; border-radius:7px; background:var(--surface2);
+}
+.quest-notes a:hover{border-color:var(--gold);}
 .boss-section{margin-top:16px; padding-top:14px; border-top:2px dashed var(--boss);}
 .boss-section h3{
   font-family:var(--font-display); font-size:0.6rem; color:var(--boss); margin:0 0 10px; letter-spacing:.03em;
@@ -204,42 +210,56 @@ body{
       {s:'acct', t:'Partnership fundamentals, P&L appropriation, goodwill valuation'},
       {s:'bst', t:'Nature & Significance of Management, Principles of Management'},
       {s:'macro', t:'National Income and Related Aggregates'},
-      {s:'ied', t:'Eve of independence; development experience 1947–90 (Part 1)'},
+      {s:'ied', t:'Eve of independence; development experience 1947–90 (Part 1)', notes:[
+        {label:'Eve of Independence', claude:'763582e16bf851e2178ad091eb2755ce', local:'notes/ied/eve-of-independence.pdf'},
+        {label:'Indian Economy 1950–1990', claude:'547f557b3a0f4b22c8cac8b695147d7a', local:'notes/ied/indian-economy-1950-1990.pdf'}
+      ]},
       {s:'eng', t:'Reading practice + Notice/Invitation + Flamingo: The Last Lesson, Lost Spring'}
     ], boss:[]},
     {id:'w2', title:'Week 2', dates:'Nov 3 – 9', phase:'Phase 1 · First Pass', quests:[
       {s:'acct', t:'Partnership — admission of a partner'},
       {s:'bst', t:'Business Environment, Planning'},
       {s:'macro', t:'Money and Banking'},
-      {s:'ied', t:'Economic reforms since 1991 (LPG)'},
+      {s:'ied', t:'Economic reforms since 1991 (LPG)', notes:[
+        {label:'Economic Reforms since 1991', claude:'e9e56a025e61aaf0327fecae1b9ad18b', local:'notes/ied/economic-reforms-1991.pdf'}
+      ]},
       {s:'eng', t:'Letter writing (job application) + Flamingo: Deep Water, The Rattrap'}
     ], boss:[]},
     {id:'w3', title:'Week 3', dates:'Nov 10 – 16', phase:'Phase 1 · First Pass', quests:[
       {s:'acct', t:'Partnership — retirement and death of a partner'},
       {s:'bst', t:'Organising, Staffing'},
       {s:'macro', t:'Determination of Income & Employment — consumption function'},
-      {s:'ied', t:'Current challenges — poverty, human capital formation'},
+      {s:'ied', t:'Current challenges — poverty, human capital formation', notes:[
+        {label:'Human Capital Formation', claude:'75dce364132c29f4170572d53d64740b', local:'notes/ied/human-capital-formation.pdf'}
+      ]},
       {s:'eng', t:'Letter to editor + article + Flamingo: Indigo; poetry: My Mother at Sixty Six, Keeping Quiet'}
     ], boss:[]},
     {id:'w4', title:'Week 4', dates:'Nov 17 – 23', phase:'Phase 1 · First Pass', quests:[
       {s:'acct', t:'Partnership — dissolution of a firm'},
       {s:'bst', t:'Directing, Controlling'},
       {s:'macro', t:'Determination of Income & Employment — multiplier, excess/deficient demand'},
-      {s:'ied', t:'Current challenges — rural development, employment'},
+      {s:'ied', t:'Current challenges — rural development, employment', notes:[
+        {label:'Rural Development', claude:'d95ca43d210bb34cd711a9f4010bdfc7', local:'notes/ied/rural-development.pdf'},
+        {label:'Employment — Growth, Informalisation & Issues', claude:'e8738a2c8b93a1bfc428902d7047d481', local:'notes/ied/employment.pdf'}
+      ]},
       {s:'eng', t:'Report writing + Flamingo poetry: A Thing of Beauty; Vistas: The Third Level, The Tiger King'}
     ], boss:[]},
     {id:'w5', title:'Week 5', dates:'Nov 24 – 30', phase:'Phase 1 · First Pass', quests:[
       {s:'acct', t:'Accounting for companies — issue of shares'},
       {s:'bst', t:'Financial Management, Financial Markets'},
       {s:'macro', t:'Government Budget and the Economy'},
-      {s:'ied', t:'Current challenges — infrastructure, environment & sustainable development'},
+      {s:'ied', t:'Current challenges — infrastructure, environment & sustainable development', notes:[
+        {label:'Environment and Sustainable Development', claude:'0bd2dbfcf87f38cdc981cb6e9b229ecb', local:'notes/ied/environment-sustainable-development.pdf'}
+      ]},
       {s:'eng', t:'Vistas: Journey to the End of the Earth, The Enemy + first pass of remaining lessons'}
     ], boss:[]},
     {id:'w6', title:'Week 6', dates:'Dec 1 – 7', phase:'Phase 1 · First Pass', quests:[
       {s:'acct', t:'Debentures, company final accounts, financial statement analysis, cash flow'},
       {s:'bst', t:'Marketing Management, Consumer Protection'},
       {s:'macro', t:'Balance of Payments'},
-      {s:'ied', t:'Comparative development — India, Pakistan, China'},
+      {s:'ied', t:'Comparative development — India, Pakistan, China', notes:[
+        {label:'Comparative Development', claude:'a338240e3a2449a206d41747e330fb4b', local:'notes/ied/comparative-development.pdf'}
+      ]},
       {s:'eng', t:'Finish literature revision pass'}
     ], boss:[{t:'Timed Reading + Writing paper, full exam conditions', xp:50}]},
     {id:'w7', title:'Week 7', dates:'Dec 8 – 14', phase:'Phase 2 · Revision Round 1', quests:[
@@ -355,6 +375,10 @@ body{
     {d:'Sat', s1:'elective', s2:'ied',   s3:'rev'},
     {d:'Sun', s1:'rev',      s2:null,    s3:null}
   ];
+
+  // on GitHub Pages use the local notes/ copy; everywhere else (the Claude artifact) use the uploaded asset
+  var ON_GITHUB = /\.github\.io$/.test(location.hostname);
+  function noteUrl(n){ return ON_GITHUB ? n.local : ('/_blob/' + n.claude); }
 
   var RANKS = [[0,'Beginner'],[3,'Apprentice'],[6,'Scholar'],[9,'Achiever'],[11,'Topper'],[99,'Board Champion']];
   function rankFor(level){ var r = RANKS[0][1]; for(var i=0;i<RANKS.length;i++){ if(level >= RANKS[i][0]) r = RANKS[i][1]; } return r; }
@@ -543,7 +567,11 @@ body{
       html += '<div class="quest'+(done[k]?' done':'')+'">'+
         '<input type="checkbox" data-week="'+w.id+'" data-subj="'+q.s+'" '+(done[k]?'checked':'')+'>'+
         '<div class="quest-body"><span class="quest-subject" style="background:'+meta.color+'22;color:'+meta.color+'">'+meta.label+'</span>'+
-        '<div class="quest-text">'+q.t+'</div></div>'+
+        '<div class="quest-text">'+q.t+'</div>'+
+        (q.notes ? '<div class="quest-notes">'+q.notes.map(function(n){
+          return '<a href="'+noteUrl(n)+'" target="_blank" rel="noopener">📄 '+n.label+'</a>';
+        }).join('')+'</div>' : '')+
+        '</div>'+
         '<div class="quest-xp">+10</div></div>';
     });
     html += buildDailyPlan(wi);
