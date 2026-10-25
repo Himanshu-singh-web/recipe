@@ -1,749 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <title>Boards Quest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-/* layout: a vertical mountain-path journey of 10 week-nodes; tapping a node opens its quest panel below.
-   A group selector at the top switches which 5th subject (elective) is active. */
 :root{
-  --bg:#0b0e1a; --surface:#141a2e; --surface2:#1b2238;
-  --fg:#eef0fa; --muted:#8891b5; --line:#2a3251;
-  --gold:#e8b94a; --path-todo:#2a3251;
+  --bg:#0b0e1a; --fg:#eef0fa; --muted:#8891b5;
+  --gold:#e8b94a;
   --acct:#e8b94a; --bst:#4fd1c5; --macro:#f2789f; --ied:#9b8cf2; --eng:#6fb8f0;
   --cs:#7fd858; --tabla:#ff8a5c; --vocal:#e8e04a; --guitar:#c084fc; --physical:#4ddbff;
-  --boss:#ef5e5e;
   --font-display:'Press Start 2P',monospace;
   --font-body:'Space Mono','JetBrains Mono',ui-monospace,monospace;
   color-scheme:dark;
 }
 *{box-sizing:border-box;}
+html,body{height:100%;}
 body{
-  background:
-    radial-gradient(ellipse 600px 300px at 20% 10%, #1c2444 0%, transparent 60%),
-    radial-gradient(ellipse 500px 260px at 85% 30%, #231a3a 0%, transparent 55%),
-    var(--bg);
-  color:var(--fg); font-family:var(--font-body); min-height:100vh;
-  padding-left:max(16px,env(safe-area-inset-left,0px));
-  padding-right:max(16px,env(safe-area-inset-right,0px));
-  padding-block:20px 60px;
-}
-.wrap{max-width:640px;margin:0 auto;}
-
-/* group selector */
-.group-bar{display:flex; gap:6px; overflow-x:auto; margin-bottom:14px; padding-bottom:2px;}
-.group-chip{
-  flex-shrink:0; background:var(--surface); border:1px solid var(--line); color:var(--muted);
-  padding:8px 13px; border-radius:99px; font-size:0.72rem; font-weight:700; cursor:pointer;
-  white-space:nowrap; font-family:var(--font-body);
-}
-.group-chip.active{background:var(--gold); color:#1b1400; border-color:var(--gold);}
-
-/* header / stats bar */
-.hud{
-  background:var(--surface); border:2px solid var(--line); border-radius:14px;
-  padding:16px; margin-bottom:22px; position:sticky; top:max(10px, env(safe-area-inset-top,0px));
-  z-index:5; box-shadow:0 8px 24px #00000066;
-}
-.hud-top{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;}
-.title-badge{font-family:var(--font-display); font-size:0.62rem; color:var(--gold); letter-spacing:0.02em;}
-.title-badge .sub{display:block; color:var(--muted); font-size:0.52rem; margin-top:4px; font-family:var(--font-body); letter-spacing:0;}
-.streak{display:flex; align-items:center; gap:6px; font-size:0.85rem; color:#ffb355; font-weight:700;}
-.xp-row{display:flex; align-items:center; gap:10px;}
-.xp-bar-track{flex:1; height:12px; background:var(--surface2); border-radius:99px; overflow:hidden; border:1px solid var(--line);}
-.xp-bar-fill{height:100%; background:linear-gradient(90deg,#e8b94a,#ffd98a); border-radius:99px; transition:width .4s ease;}
-.xp-label{font-size:0.7rem; color:var(--muted); white-space:nowrap; font-variant-numeric:tabular-nums;}
-.hud-subjects{display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;}
-.hud-subj-pill{font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; padding:2px 8px; border-radius:99px;}
-
-/* path */
-.path{position:relative; padding:10px 0 10px 50px;}
-.path::before{
-  content:""; position:absolute; left:24px; top:10px; bottom:10px; width:3px;
-  background:linear-gradient(var(--path-todo),var(--path-todo));
-  border-radius:2px;
-}
-.path-fill{position:absolute; left:24px; bottom:10px; width:3px; background:linear-gradient(var(--gold),#ffd98a); border-radius:2px; transition:height .4s ease;}
-.node{position:relative; margin-bottom:26px; cursor:pointer;}
-.node:last-child{margin-bottom:0;}
-.node-dot{
-  position:absolute; left:-50px; top:0; width:44px; height:44px; border-radius:50%;
-  background:var(--surface2); border:3px solid var(--line); display:flex; align-items:center; justify-content:center;
-  font-family:var(--font-display); font-size:0.75rem; color:var(--muted); flex-shrink:0; z-index:2;
-}
-.node.complete .node-dot{border-color:var(--gold); background:#2a230f; color:var(--gold);}
-.node.current .node-dot{border-color:var(--gold); box-shadow:0 0 0 4px #e8b94a33; color:var(--gold);}
-.node-card{
-  background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px 14px;
-  margin-left:4px; transition:border-color .2s;
-}
-.node.current .node-card{border-color:var(--gold);}
-.node-head{display:flex; justify-content:space-between; align-items:baseline; gap:8px; flex-wrap:wrap;}
-.node-title{font-weight:700; font-size:0.95rem;}
-.node-dates{color:var(--muted); font-size:0.72rem;}
-.node-phase{display:inline-block; font-size:0.62rem; color:var(--gold); text-transform:uppercase; letter-spacing:.05em; margin-top:3px;}
-.node-progress{margin-top:8px; height:6px; background:var(--surface2); border-radius:99px; overflow:hidden;}
-.node-progress-fill{height:100%; background:var(--gold); border-radius:99px;}
-
-/* quest panel */
-.panel{
-  display:none; background:var(--surface); border:2px solid var(--gold); border-radius:14px;
-  padding:18px; margin:14px 0 26px; box-shadow:0 10px 30px #00000066;
-}
-.panel.open{display:block;}
-.panel h2{margin:0 0 2px; font-size:1.1rem;}
-.panel .dates{color:var(--muted); font-size:0.78rem; margin-bottom:14px;}
-.quest{
-  display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid var(--line);
-}
-.quest:last-of-type{border-bottom:none;}
-.quest input[type=checkbox]{width:20px; height:20px; margin-top:2px; flex-shrink:0; accent-color:var(--gold); cursor:pointer;}
-.quest-body{flex:1; min-width:0;}
-.quest-subject{
-  display:inline-block; font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
-  padding:2px 8px; border-radius:99px; margin-bottom:4px;
-}
-.quest-text{font-size:0.88rem; line-height:1.4;}
-.quest.done .quest-text{color:var(--muted); text-decoration:line-through;}
-.quest-xp{font-size:0.68rem; color:var(--gold); font-weight:700; flex-shrink:0; white-space:nowrap; font-variant-numeric:tabular-nums;}
-.quest-notes{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;}
-.quest-notes a{
-  display:inline-flex; align-items:center; gap:4px; font-size:0.68rem; color:var(--gold); text-decoration:none;
-  border:1px solid var(--line); padding:3px 8px; border-radius:7px; background:var(--surface2);
-}
-.quest-notes a:hover{border-color:var(--gold);}
-.boss-section{margin-top:16px; padding-top:14px; border-top:2px dashed var(--boss);}
-.boss-section h3{
-  font-family:var(--font-display); font-size:0.6rem; color:var(--boss); margin:0 0 10px; letter-spacing:.03em;
-}
-.quest.boss .quest-xp{color:var(--boss);}
-.close-panel{
-  margin-top:14px; width:100%; padding:10px; background:var(--surface2); border:1px solid var(--line);
-  color:var(--muted); border-radius:8px; font-family:var(--font-body); font-size:0.8rem; cursor:pointer;
+  margin:0;
+  background:var(--bg);
+  color:var(--fg);
+  font-family:var(--font-body);
+  min-height:100vh;
+  overflow-x:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  padding-left:max(24px,env(safe-area-inset-left,0px));
+  padding-right:max(24px,env(safe-area-inset-right,0px));
+  padding-top:max(24px,env(safe-area-inset-top,0px));
+  padding-bottom:max(24px,env(safe-area-inset-bottom,0px));
+  position:relative;
 }
 
-.daily-section{margin-top:16px; padding-top:14px; border-top:1px solid var(--line);}
-.daily-section h3{
-  font-family:var(--font-display); font-size:0.6rem; color:var(--gold); margin:0 0 10px; letter-spacing:.03em;
+/* ---- background artifacts: soft drifting gradient blobs in the subject palette ---- */
+.artifacts{position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none;}
+.blob{position:absolute; border-radius:50%; filter:blur(70px); opacity:0.45; mix-blend-mode:screen;}
+.blob1{width:420px; height:420px; left:-120px; top:-100px; background:var(--acct); animation:float1 16s ease-in-out infinite;}
+.blob2{width:380px; height:380px; right:-110px; top:60px; background:var(--macro); animation:float2 20s ease-in-out infinite;}
+.blob3{width:340px; height:340px; left:50%; bottom:-160px; transform:translateX(-50%); background:var(--ied); animation:float3 18s ease-in-out infinite;}
+.blob4{width:300px; height:300px; left:-60px; bottom:10%; background:var(--bst); animation:float1 22s ease-in-out infinite reverse;}
+.blob5{width:260px; height:260px; right:-40px; bottom:-60px; background:var(--eng); animation:float2 14s ease-in-out infinite reverse;}
+.blob6{width:220px; height:220px; right:18%; top:-80px; background:var(--guitar); animation:float3 24s ease-in-out infinite reverse;}
+@keyframes float1{0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(30px,40px) scale(1.08);}}
+@keyframes float2{0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(-40px,25px) scale(1.1);}}
+@keyframes float3{0%,100%{transform:translate(-50%,0) scale(1);} 50%{transform:translate(calc(-50% + 25px),-30px) scale(1.06);}}
+.noise{position:fixed; inset:0; z-index:1; pointer-events:none; opacity:0.035;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-.day-row{display:flex; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); align-items:flex-start;}
-.day-row:last-child{border-bottom:none;}
-.day-label{
-  width:38px; flex-shrink:0; font-family:var(--font-display); font-size:0.56rem; color:var(--muted); padding-top:3px;
-}
-.day-row.today .day-label{color:var(--gold);}
-.day-sessions{flex:1; min-width:0; display:flex; flex-direction:column; gap:5px;}
-.sess-chip{display:flex; align-items:baseline; gap:6px; font-size:0.78rem; line-height:1.35; flex-wrap:wrap;}
-.sess-time{font-size:0.62rem; color:var(--muted); flex-shrink:0; width:42px; font-variant-numeric:tabular-nums;}
-.sess-subj{font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; flex-shrink:0;}
-.sess-check{flex-shrink:0; font-size:0.72rem;}
-
-.note{color:var(--muted); font-size:0.72rem; margin-top:30px; line-height:1.6; text-align:center;}
-.reset-btn{
-  display:block; margin:18px auto 0; background:none; border:1px solid var(--line); color:var(--muted);
-  padding:7px 14px; border-radius:8px; font-size:0.72rem; cursor:pointer; font-family:var(--font-body);
+.vignette{position:fixed; inset:0; z-index:1; pointer-events:none;
+  background:radial-gradient(ellipse 80% 70% at 50% 50%, transparent 40%, var(--bg) 95%);
 }
 
-#levelup{
-  position:fixed; left:50%; top:16%; transform:translate(-50%,-10px); z-index:50;
-  background:var(--surface); border:2px solid var(--gold); border-radius:14px; padding:18px 26px;
-  text-align:center; opacity:0; pointer-events:none; transition:opacity .3s, transform .3s;
-  box-shadow:0 10px 40px #000000aa;
+/* ---- hero content ---- */
+.hero{position:relative; z-index:2; max-width:560px; width:100%; text-align:center;}
+.eyebrow{
+  font-family:var(--font-body); font-weight:700; font-size:0.72rem; letter-spacing:0.25em;
+  color:var(--muted); text-transform:uppercase; margin:0 0 18px;
 }
-#levelup.show{opacity:1; transform:translate(-50%,0);}
-#levelup .big{font-family:var(--font-display); font-size:1rem; color:var(--gold); margin-bottom:6px;}
-#levelup .small{color:var(--muted); font-size:0.78rem;}
+.eyebrow::before{content:"✦ "; color:var(--gold);}
+.eyebrow::after{content:" ✦"; color:var(--gold);}
+
+h1.team{
+  font-family:var(--font-display);
+  font-size:clamp(3.2rem, 15vw, 6.5rem);
+  line-height:1;
+  margin:0;
+  letter-spacing:0.06em;
+  color:var(--gold);
+  text-shadow:0 0 18px #e8b94a55, 0 0 50px #e8b94a22;
+}
+
+.full-form{
+  margin:18px 0 0;
+  font-family:var(--font-body);
+  font-weight:700;
+  font-size:clamp(0.85rem, 3vw, 1.15rem);
+  color:var(--fg);
+  letter-spacing:0.02em;
+}
+.full-form .tick{color:var(--acct);}
+.full-form .e1{color:var(--bst);}
+.full-form .a{color:var(--macro);}
+.full-form .m{color:var(--eng);}
+
+.tagline{
+  margin:14px 0 42px;
+  font-size:0.85rem;
+  color:var(--muted);
+  max-width:420px;
+  margin-left:auto; margin-right:auto;
+  line-height:1.6;
+}
+
+.cta{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  font-family:var(--font-display);
+  font-size:clamp(0.9rem, 3.2vw, 1.15rem);
+  font-weight:700;
+  text-decoration:none;
+  color:#1b1400;
+  background:linear-gradient(90deg,#e8b94a,#ffd98a);
+  padding:18px 34px;
+  border-radius:99px;
+  box-shadow:0 10px 30px #e8b94a44, 0 2px 0 #00000033 inset;
+  transition:transform .15s ease, box-shadow .15s ease;
+  letter-spacing:0.03em;
+}
+.cta:hover{transform:translateY(-2px) scale(1.03); box-shadow:0 14px 36px #e8b94a66, 0 2px 0 #00000033 inset;}
+.cta:active{transform:translateY(0) scale(0.98);}
+.cta .arrow{display:inline-block; transition:transform .15s ease;}
+.cta:hover .arrow{transform:translateX(4px);}
+
+.footer-note{
+  margin-top:28px; font-size:0.65rem; color:var(--muted); letter-spacing:0.08em; text-transform:uppercase;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .blob{animation:none !important;}
+}
 </style>
+</head>
+<body>
 
-<div class="wrap">
-  <div class="group-bar" id="group-bar"></div>
-
-  <div class="hud">
-    <div class="hud-top">
-      <div class="title-badge">LEVEL <span id="hud-level">1</span><span class="sub" id="hud-rank">Beginner</span></div>
-      <div class="streak">🔥 <span id="hud-streak">0</span>-day streak</div>
-    </div>
-    <div class="xp-row">
-      <div class="xp-bar-track"><div class="xp-bar-fill" id="xp-fill" style="width:0%"></div></div>
-      <div class="xp-label"><span id="xp-current">0</span> / <span id="xp-needed">100</span> XP</div>
-    </div>
-    <div class="hud-subjects" id="hud-subjects"></div>
-  </div>
-
-  <div class="path" id="path">
-    <div class="path-fill" id="path-fill" style="height:0%"></div>
-    <!-- nodes injected -->
-  </div>
-
-  <div id="panels"></div>
-
-  <p class="note">67 days, 5 subjects, one goal: 98%+.<br>Tap a week on the path to open its quests.</p>
-  <button class="reset-btn" id="reset-btn">Reset all progress</button>
+<div class="artifacts">
+  <div class="blob blob1"></div>
+  <div class="blob blob2"></div>
+  <div class="blob blob3"></div>
+  <div class="blob blob4"></div>
+  <div class="blob blob5"></div>
+  <div class="blob blob6"></div>
 </div>
+<div class="noise"></div>
+<div class="vignette"></div>
 
-<div id="levelup"><div class="big">LEVEL UP!</div><div class="small" id="levelup-text"></div></div>
+<main class="hero">
+  <p class="eyebrow">Boards Quest</p>
+  <h1 class="team">TEAM</h1>
+  <p class="full-form">
+    <span class="tick">T</span>ogether
+    <span class="e1">E</span>veryone
+    <span class="a">A</span>chieve
+    <span class="m">M</span>ore
+  </p>
+  <p class="tagline">67 days, 6 subjects, one goal: 98%+. Every chapter, every quest, one step closer to the boards.</p>
+  <a class="cta" href="board.html">Let's Go <span class="arrow">→</span></a>
+  <div class="footer-note">Class 12 CBSE · 2026–27</div>
+</main>
 
-<script>
-(function(){
-  var SUBJECT_META = {
-    acct:  {label:'Accountancy', color:'var(--acct)'},
-    bst:   {label:'BST', color:'var(--bst)'},
-    macro: {label:'Economics (Macro)', color:'var(--macro)'},
-    ied:   {label:'Economics (IED)', color:'var(--ied)'},
-    eng:   {label:'English', color:'var(--eng)'},
-    cs:       {label:'Computer Sci', color:'var(--cs)'},
-    tabla:    {label:'Tabla', color:'var(--tabla)'},
-    vocal:    {label:'Vocal Music', color:'var(--vocal)'},
-    guitar:   {label:'Guitar', color:'var(--guitar)'},
-    physical: {label:'Physical Ed', color:'var(--physical)'}
-  };
-
-  // the 5 subject groups the user defined — 4 common subjects + one elective
-  var GROUPS = [
-    {id:'tabla',    label:'Tabla',        elective:'tabla'},
-    {id:'vocal',    label:'Vocal Music',  elective:'vocal'},
-    {id:'guitar',   label:'Guitar',       elective:'guitar'},
-    {id:'physical', label:'Physical Ed',  elective:'physical'},
-    {id:'cs',       label:'Computer Sci', elective:'cs'}
-  ];
-  var COMMON_SUBJECTS = ['acct','bst','macro','ied','eng'];
-
-  var WEEKS = [
-    {id:'w1', title:'Week 1', dates:'Oct 27 – Nov 2', phase:'Phase 1 · First Pass', quests:[
-      {s:'acct', t:'Partnership fundamentals, P&L appropriation, goodwill valuation, change in profit sharing ratio', notes:[
-        {label:'Fundamentals of Partnership Accounting', local:'notes/accountancy/fundamentals-of-partnership-accounting.pdf'},
-        {label:'Goodwill — Nature and Valuation', local:'notes/accountancy/goodwill-nature-and-valuation.pdf'},
-        {label:'Change in Profit Sharing Ratio Among Existing Partners', local:'notes/accountancy/change-in-profit-sharing-ratio.pdf'}
-      ]},
-      {s:'bst', t:'Nature & Significance of Management, Principles of Management', notes:[
-        {label:'Nature & Significance of Management', claude:'0a2f84aaaed60f41ba35234d0badf612', local:'notes/bst/nature-significance-of-management.pdf'},
-        {label:'Principles of Management', claude:'b3a917b2de6549d912b40ed8a314cbd7', local:'notes/bst/principles-of-management.pdf'}
-      ]},
-      {s:'macro', t:'National Income and Related Aggregates', notes:[
-        {label:'National Income Accounting', claude:'94500064ef085381909a326bfc4f8634', local:'notes/macro/national-income-accounting.pdf'}
-      ]},
-      {s:'ied', t:'Eve of independence; development experience 1947–90 (Part 1)', notes:[
-        {label:'Eve of Independence', claude:'763582e16bf851e2178ad091eb2755ce', local:'notes/ied/eve-of-independence.pdf'},
-        {label:'Indian Economy 1950–1990', claude:'547f557b3a0f4b22c8cac8b695147d7a', local:'notes/ied/indian-economy-1950-1990.pdf'}
-      ]},
-      {s:'eng', t:'Reading practice + Notice/Invitation + Flamingo: The Last Lesson, Lost Spring', notes:[
-        {label:'Flamingo — Detailed Chapter & Poem Notes', local:'notes/eng/flamingo-detailed-notes.pdf'}
-      ]}
-    ], boss:[]},
-    {id:'w2', title:'Week 2', dates:'Nov 3 – 9', phase:'Phase 1 · First Pass', quests:[
-      {s:'acct', t:'Partnership — admission of a partner', notes:[
-        {label:'Admission of a Partner', local:'notes/accountancy/admission-of-a-partner.pdf'}
-      ]},
-      {s:'bst', t:'Business Environment, Planning', notes:[
-        {label:'Business Environment', claude:'1ce015f24216dd3ed8b549a399173c60', local:'notes/bst/business-environment.pdf'},
-        {label:'Planning', claude:'c9cfa1f15882618dafac617daef65c11', local:'notes/bst/planning.pdf'}
-      ]},
-      {s:'macro', t:'Money and Banking', notes:[
-        {label:'Money and Banking', claude:'35a3d8af764c2c090849496a33678c8f', local:'notes/macro/money-and-banking.pdf'}
-      ]},
-      {s:'ied', t:'Economic reforms since 1991 (LPG)', notes:[
-        {label:'Economic Reforms since 1991', claude:'e9e56a025e61aaf0327fecae1b9ad18b', local:'notes/ied/economic-reforms-1991.pdf'}
-      ]},
-      {s:'eng', t:'Letter writing (job application) + Flamingo: Deep Water, The Rattrap', notes:[
-        {label:'Flamingo — Detailed Chapter & Poem Notes', local:'notes/eng/flamingo-detailed-notes.pdf'}
-      ]}
-    ], boss:[]},
-    {id:'w3', title:'Week 3', dates:'Nov 10 – 16', phase:'Phase 1 · First Pass', quests:[
-      {s:'acct', t:'Partnership — retirement and death of a partner', notes:[
-        {label:'Retirement of a Partner and Death of a Partner', local:'notes/accountancy/retirement-and-death-of-a-partner.pdf'}
-      ]},
-      {s:'bst', t:'Organising, Staffing', notes:[
-        {label:'Organising', claude:'523a13a00bda5fbfc568d9ffdeaf2611', local:'notes/bst/organising.pdf'},
-        {label:'Staffing', claude:'5a336e9582e6eb1cf3a97edb60229f46', local:'notes/bst/staffing.pdf'}
-      ]},
-      {s:'macro', t:'Determination of Income & Employment — consumption function', notes:[
-        {label:'Determination of Income & Employment', claude:'e959874a3ef7a32e9441252b84d46f97', local:'notes/macro/determination-of-income-and-employment.pdf'}
-      ]},
-      {s:'ied', t:'Current challenges — poverty, human capital formation', notes:[
-        {label:'Human Capital Formation', claude:'75dce364132c29f4170572d53d64740b', local:'notes/ied/human-capital-formation.pdf'}
-      ]},
-      {s:'eng', t:'Letter to editor + article + Flamingo: Indigo; poetry: My Mother at Sixty Six, Keeping Quiet', notes:[
-        {label:'Flamingo — Detailed Chapter & Poem Notes', local:'notes/eng/flamingo-detailed-notes.pdf'}
-      ]}
-    ], boss:[]},
-    {id:'w4', title:'Week 4', dates:'Nov 17 – 23', phase:'Phase 1 · First Pass', quests:[
-      {s:'acct', t:'Partnership — dissolution of a firm', notes:[
-        {label:'Dissolution of a Partnership Firm', local:'notes/accountancy/dissolution-of-a-partnership-firm.pdf'}
-      ]},
-      {s:'bst', t:'Directing, Controlling', notes:[
-        {label:'Directing', claude:'26bdf960ce9dd569474f733d05e52b92', local:'notes/bst/directing.pdf'},
-        {label:'Controlling', claude:'a0011666ee5e54f024bc3b5467f17319', local:'notes/bst/controlling.pdf'}
-      ]},
-      {s:'macro', t:'Determination of Income & Employment — multiplier, excess/deficient demand', notes:[
-        {label:'Determination of Income & Employment', claude:'e959874a3ef7a32e9441252b84d46f97', local:'notes/macro/determination-of-income-and-employment.pdf'}
-      ]},
-      {s:'ied', t:'Current challenges — rural development, employment', notes:[
-        {label:'Rural Development', claude:'d95ca43d210bb34cd711a9f4010bdfc7', local:'notes/ied/rural-development.pdf'},
-        {label:'Employment — Growth, Informalisation & Issues', claude:'e8738a2c8b93a1bfc428902d7047d481', local:'notes/ied/employment.pdf'}
-      ]},
-      {s:'eng', t:'Report writing + Flamingo poetry: A Thing of Beauty; Vistas: The Third Level, The Tiger King', notes:[
-        {label:'Flamingo — Detailed Chapter & Poem Notes', local:'notes/eng/flamingo-detailed-notes.pdf'},
-        {label:'Vistas — Detailed Chapter Notes', local:'notes/eng/vistas-detailed-notes.pdf'}
-      ]}
-    ], boss:[]},
-    {id:'w5', title:'Week 5', dates:'Nov 24 – 30', phase:'Phase 1 · First Pass', quests:[
-      {s:'acct', t:'Accounting for companies — issue of shares', notes:[
-        {label:'Company Accounts — Share Capital', local:'notes/accountancy/company-accounts-share-capital.pdf'}
-      ]},
-      {s:'bst', t:'Financial Management, Financial Markets', notes:[
-        {label:'Financial Management', claude:'81e902ad471485b8ee75b539d93c2db9', local:'notes/bst/financial-management.pdf'},
-        {label:'Financial Market', claude:'310421229517c5687a1256c5125f6b6a', local:'notes/bst/financial-market.pdf'}
-      ]},
-      {s:'macro', t:'Government Budget and the Economy', notes:[
-        {label:'Government Budget', claude:'be91c7b61b9eead0bdf341c70c00107c', local:'notes/macro/government-budget.pdf'}
-      ]},
-      {s:'ied', t:'Current challenges — infrastructure, environment & sustainable development', notes:[
-        {label:'Environment and Sustainable Development', claude:'0bd2dbfcf87f38cdc981cb6e9b229ecb', local:'notes/ied/environment-sustainable-development.pdf'}
-      ]},
-      {s:'eng', t:'Vistas: Journey to the End of the Earth, The Enemy + first pass of remaining lessons', notes:[
-        {label:'Vistas — Detailed Chapter Notes', local:'notes/eng/vistas-detailed-notes.pdf'}
-      ]}
-    ], boss:[]},
-    {id:'w6', title:'Week 6', dates:'Dec 1 – 7', phase:'Phase 1 · First Pass', quests:[
-      {s:'acct', t:'Debentures, company final accounts, financial statement analysis, cash flow', notes:[
-        {label:'Company Accounts — Issue of Debentures', local:'notes/accountancy/issue-of-debentures.pdf'}
-      ]},
-      {s:'bst', t:'Marketing Management, Consumer Protection', notes:[
-        {label:'Marketing Management', claude:'fdceb21302e7871eb55caa8c94a0df53', local:'notes/bst/marketing-management.pdf'},
-        {label:'Consumer Protection', claude:'d7f7f7b0b79ba00afb85007d72dbeed8', local:'notes/bst/consumer-protection.pdf'}
-      ]},
-      {s:'macro', t:'Balance of Payments', notes:[
-        {label:'Balance of Payment', claude:'161a2748cb2bae5aa7625e2244a6290c', local:'notes/macro/balance-of-payment.pdf'},
-        {label:'Foreign Exchange Rate', claude:'1e78095e9326eeff4e04afd9a6591b3e', local:'notes/macro/foreign-exchange-rate.pdf'}
-      ]},
-      {s:'ied', t:'Comparative development — India, Pakistan, China', notes:[
-        {label:'Comparative Development', claude:'a338240e3a2449a206d41747e330fb4b', local:'notes/ied/comparative-development.pdf'}
-      ]},
-      {s:'eng', t:'Finish literature revision pass', notes:[
-        {label:'Flamingo — Detailed Chapter & Poem Notes', local:'notes/eng/flamingo-detailed-notes.pdf'},
-        {label:'Vistas — Detailed Chapter Notes', local:'notes/eng/vistas-detailed-notes.pdf'}
-      ]}
-    ], boss:[{t:'Timed Reading + Writing paper, full exam conditions', xp:50}]},
-    {id:'w7', title:'Week 7', dates:'Dec 8 – 14', phase:'Phase 2 · Revision Round 1', quests:[
-      {s:'acct', t:'Redo every numerical type from memory'},
-      {s:'bst', t:'Quick revise Part A chapters'},
-      {s:'macro', t:'Quick revise National Income & Money and Banking'},
-      {s:'ied', t:'Quick revise Development Experience & Reforms'},
-      {s:'eng', t:'One Reading comprehension set, timed'}
-    ], boss:[{t:'Accountancy full sample paper, timed', xp:50}], electiveBoss:true},
-    {id:'w8', title:'Week 8', dates:'Dec 15 – 21', phase:'Phase 2 · Revision Round 1', quests:[
-      {s:'acct', t:'Practice 5 mixed numericals'},
-      {s:'bst', t:'Full revision, all chapters'},
-      {s:'macro', t:'Full revision, all chapters'},
-      {s:'ied', t:'Full revision, all chapters'},
-      {s:'eng', t:'One Writing Skills set — letter/article/report'}
-    ], boss:[{t:'BST sample paper, timed', xp:50},{t:'Macroeconomics sample paper, timed', xp:50},{t:'IED sample paper, timed', xp:50}]},
-    {id:'w9', title:'Week 9', dates:'Dec 22 – 28', phase:'Phase 2 · Weak Areas', quests:[
-      {s:'acct', t:'Revise topics flagged weak from sample papers'},
-      {s:'bst', t:'Revise topics flagged weak from sample papers'},
-      {s:'macro', t:'Revise topics flagged weak from sample papers'},
-      {s:'ied', t:'Revise topics flagged weak from sample papers'},
-      {s:'eng', t:'Revise weak literature/writing areas'}
-    ], boss:[{t:'English full mock — Reading + Writing + Literature, timed', xp:50}]},
-    {id:'w10', title:'Week 10', dates:'Dec 29 – 31', phase:'Phase 2 · Consolidate', quests:[
-      {s:'acct', t:'Light final revision only — no new topics'},
-      {s:'bst', t:'Light final revision only — no new topics'},
-      {s:'macro', t:'Light final revision only — no new topics'},
-      {s:'ied', t:'Light final revision only — no new topics'},
-      {s:'eng', t:'Light final revision only — no new topics'}
-    ], boss:[{t:'Final mock — weakest subject #1', xp:50},{t:'Final mock — weakest subject #2', xp:50}]}
-  ];
-
-  // elective-specific weekly content, 10 entries each (index 0 = Week 1 ... 9 = Week 10)
-  var ELECTIVE_WEEKS = {
-    cs: [
-      'Python revision — functions, modules, arguments, scope',
-      'Exception handling, text file handling',
-      'File handling — binary files (pickle), CSV files',
-      'Stack data structure — push/pop implementation',
-      'Computer Networks — full unit',
-      'Database Management — SQL, Python–SQL connectivity',
-      'Rewrite every program type without notes',
-      'Practice 2 full programs + SQL queries',
-      'Revise topics flagged weak from sample papers',
-      'Light final revision only — no new topics'
-    ],
-    tabla: [
-      {t:'Theory Unit 1 — Uthan; Chautala-Ektala & Jhaptala-Sultala comparison. Daily riyaz: Teentala theka.', notes:[
-        {label:'कक्षा 12 तबला — Detailed Notes (Hindi)', local:'notes/tabla/tabla-detailed-notes-hindi.pdf'}
-      ]},
-      {t:'Theory Unit 2 — Layakari varieties; Tabla/Pakhawaj gharanas. Practice: Kayda in Teentala with palta.', notes:[
-        {label:'कक्षा 12 तबला — Detailed Notes (Hindi)', local:'notes/tabla/tabla-detailed-notes-hindi.pdf'}
-      ]},
-      {t:'Theory Unit 3 — History of Tabla. Practice: Rela and Tukra in Teentala.', notes:[
-        {label:'कक्षा 12 तबला — Detailed Notes (Hindi)', local:'notes/tabla/tabla-detailed-notes-hindi.pdf'}
-      ]},
-      {t:'Theory Unit 4 — Kishan Maharaj, Zakir Hussain, Chatrapati Singh, Purushotam Das. Practice: Jhaptala theka, Dugun-Chaugun laya.', notes:[
-        {label:'कक्षा 12 तबला — Detailed Notes (Hindi)', local:'notes/tabla/tabla-detailed-notes-hindi.pdf'}
-      ]},
-      {t:'Theory Unit 5 — Notating prescribed Talas; recognizing Talas from Thekas. Practice: Rupak & Tevra theka.', notes:[
-        {label:'कक्षा 12 तबला — Detailed Notes (Hindi)', local:'notes/tabla/tabla-detailed-notes-hindi.pdf'}
-      ]},
-      {t:'Consolidate all 5 theory units; full Kayda–Rela–Tukra–Tihai run-through; tune the tabla confidently.', notes:[
-        {label:'कक्षा 12 तबला — Detailed Notes (Hindi)', local:'notes/tabla/tabla-detailed-notes-hindi.pdf'}
-      ]},
-      'Revise theory units 1–3; practice solo performance sequence, timed.',
-      'Revise theory units 4–5; practice accompaniment (Ektala/Chautala, vilambit & drut laya).',
-      'Revise weak talas flagged from the sample paper.',
-      'Final practical rehearsal — full solo + accompaniment run-through; light theory revision only.'
-    ],
-    vocal: [
-      {t:'Theory Unit 1 — Alankar, Kan, Meend, Khatka, Murki, Gamak, Gram, Murchhana, Alap, Tana. Daily riyaz: sargam.', notes:[
-        {label:'Hindustani Vocal — Extremely Detailed Notes', local:'notes/vocal/hindustani-vocal-detailed-notes.pdf'}
-      ]},
-      {t:'Theory Unit 2 — Time theory of Ragas, historical development. Practice: Bhairav vilambit khayal.', notes:[
-        {label:'Hindustani Vocal — Extremely Detailed Notes', local:'notes/vocal/hindustani-vocal-detailed-notes.pdf'}
-      ]},
-      {t:'Theory Unit 3 — Sangeet Parijat; Faiyaz Khan, Bade Ghulam Ali Khan biographies. Practice: Bageshri khayal.', notes:[
-        {label:'Hindustani Vocal — Extremely Detailed Notes', local:'notes/vocal/hindustani-vocal-detailed-notes.pdf'}
-      ]},
-      {t:'Theory Unit 4 — Jhaptala, Rupak, Dhamar notation; Tanpura tuning. Practice: Malkauns khayal.', notes:[
-        {label:'Hindustani Vocal — Extremely Detailed Notes', local:'notes/vocal/hindustani-vocal-detailed-notes.pdf'}
-      ]},
-      {t:'Theory Unit 5 — Raga recognition from swara phrases. Practice: Tarana.', notes:[
-        {label:'Hindustani Vocal — Extremely Detailed Notes', local:'notes/vocal/hindustani-vocal-detailed-notes.pdf'}
-      ]},
-      {t:'Consolidate all 5 units; full Vilambit + Drut Khayal in one chosen raga; tune Tanpura confidently.', notes:[
-        {label:'Hindustani Vocal — Extremely Detailed Notes', local:'notes/vocal/hindustani-vocal-detailed-notes.pdf'}
-      ]},
-      'Revise theory units 1–3; practice Dhamar with Dugun/Chaugun.',
-      'Revise theory units 4–5; practice raga identification drills.',
-      'Revise weak ragas flagged from the sample paper.',
-      'Final practical rehearsal — full khayal + tarana + dhamar run-through; light theory revision only.'
-    ],
-    guitar: [
-      {t:'Theory Unit 1 — Gram, Murchhana, Alankar, Alap, Tana, Gamak, Meend, Kan, Krintan, Zamzama, Ghaseet, Sut. Daily riyaz: alankars.', notes:[
-        {label:'Hindustani Music (Guitar) — Detailed Notes', local:'notes/guitar/hindustani-guitar-detailed-notes.pdf'}
-      ]},
-      {t:'Theory Unit 2 — Historical development of the Time Theory of Ragas. Practice: Bhairav aalap–jor–jhala.', notes:[
-        {label:'Hindustani Music (Guitar) — Detailed Notes', local:'notes/guitar/hindustani-guitar-detailed-notes.pdf'}
-      ]},
-      {t:'Theory Unit 3 — Sangeet Ratnakar/Parijat; Inayat Khan, Mushtaq Ali Khan, Alauddin Khan. Practice: Bageshri gat.', notes:[
-        {label:'Hindustani Music (Guitar) — Detailed Notes', local:'notes/guitar/hindustani-guitar-detailed-notes.pdf'}
-      ]},
-      {t:'Theory Unit 4 — Jhaptala/Rupak notation; tuning the instrument. Practice: Malkauns gat.', notes:[
-        {label:'Hindustani Music (Guitar) — Detailed Notes', local:'notes/guitar/hindustani-guitar-detailed-notes.pdf'}
-      ]},
-      {t:'Theory Unit 5 — Raga recognition; notation of Bhairav/Bageshri/Malkauns. Practice: Razakhani & Masitkhani gat.', notes:[
-        {label:'Hindustani Music (Guitar) — Detailed Notes', local:'notes/guitar/hindustani-guitar-detailed-notes.pdf'}
-      ]},
-      {t:'Consolidate all 5 units; full Aalap–Jor–Jhala + Gat with todas in one chosen raga; tune confidently.', notes:[
-        {label:'Hindustani Music (Guitar) — Detailed Notes', local:'notes/guitar/hindustani-guitar-detailed-notes.pdf'}
-      ]},
-      'Revise theory units 1–3; practice Gat with Jhala.',
-      'Revise theory units 4–5; practice raga identification + Theka recitation.',
-      'Revise weak ragas flagged from the sample paper.',
-      'Final practical rehearsal — full aalap + gat run-through; light theory revision only.'
-    ],
-    physical: [
-      {t:'Management of Sporting Events + Children & Women in Sports', notes:[
-        {label:'Physical Education — Extremely Detailed Notes', local:'notes/physical/physical-education-detailed-notes.pdf'}
-      ]},
-      {t:'Yoga as a Preventive Measure for Lifestyle Diseases + Physical Education & Sports for CWSN', notes:[
-        {label:'Physical Education — Extremely Detailed Notes', local:'notes/physical/physical-education-detailed-notes.pdf'}
-      ]},
-      {t:'Sports & Nutrition + Test & Measurement in Sports', notes:[
-        {label:'Physical Education — Extremely Detailed Notes', local:'notes/physical/physical-education-detailed-notes.pdf'}
-      ]},
-      {t:'Physiology & Injuries in Sport + Biomechanics & Sports', notes:[
-        {label:'Physical Education — Extremely Detailed Notes', local:'notes/physical/physical-education-detailed-notes.pdf'}
-      ]},
-      {t:'Psychology & Sports + Training in Sports', notes:[
-        {label:'Physical Education — Extremely Detailed Notes', local:'notes/physical/physical-education-detailed-notes.pdf'}
-      ]},
-      {t:'Finish the practical file (3 practicals); full revision of all 10 units', notes:[
-        {label:'Physical Education — Extremely Detailed Notes', local:'notes/physical/physical-education-detailed-notes.pdf'}
-      ]},
-      'Revise Units 1–5; practice diagram-based Biomechanics questions',
-      'Revise Units 6–10; practice case-study questions',
-      'Revise topics flagged weak from the sample paper',
-      'Final practical file review; light theory revision only'
-    ]
-  };
-
-  var BOSS_ELECTIVE_TEXT = {
-    cs: 'Computer Science full sample paper, timed',
-    tabla: 'Tabla full practice exam — theory + solo performance, timed',
-    vocal: 'Vocal full practice exam — theory + khayal performance, timed',
-    guitar: 'Guitar full practice exam — theory + gat performance, timed',
-    physical: 'Physical Education full sample paper, timed'
-  };
-
-  // 7-day session template reused every week: which subject each study block covers.
-  // s1 = 3hr heavy session (rotates Accountancy / elective), s2 = 1.5hr theory, s3 = 1.5hr English / revision
-  var DAILY_TEMPLATE = [
-    {d:'Mon', s1:'acct',     s2:'bst',   s3:'eng'},
-    {d:'Tue', s1:'elective', s2:'macro', s3:'eng'},
-    {d:'Wed', s1:'acct',     s2:'ied',   s3:'eng'},
-    {d:'Thu', s1:'elective', s2:'bst',   s3:'rev'},
-    {d:'Fri', s1:'acct',     s2:'macro', s3:'eng'},
-    {d:'Sat', s1:'elective', s2:'ied',   s3:'rev'},
-    {d:'Sun', s1:'rev',      s2:null,    s3:null}
-  ];
-
-  // on GitHub Pages use the local notes/ copy; everywhere else (the Claude artifact) use the uploaded asset
-  var ON_GITHUB = /\.github\.io$/.test(location.hostname);
-  function noteUrl(n){ return ON_GITHUB ? n.local : ('/_blob/' + n.claude); }
-
-  var RANKS = [[0,'Beginner'],[3,'Apprentice'],[6,'Scholar'],[9,'Achiever'],[11,'Topper'],[99,'Board Champion']];
-  function rankFor(level){ var r = RANKS[0][1]; for(var i=0;i<RANKS.length;i++){ if(level >= RANKS[i][0]) r = RANKS[i][1]; } return r; }
-
-  function load(key, fb){ try{ var v = localStorage.getItem(key); return v ? JSON.parse(v) : fb; }catch(e){ return fb; } }
-  function save(key, v){ try{ localStorage.setItem(key, JSON.stringify(v)); }catch(e){} }
-
-  var done = load('bq_done', {});           // keyed "weekid-subjectkey" for quests, "weekid-boss-N" for boss items
-  var streakData = load('bq_streak', {count:0, last:null});
-  var groupId = load('bq_group', 'cs');
-  if(GROUPS.every(function(g){ return g.id !== groupId; })) groupId = 'cs';
-
-  function currentGroup(){ for(var i=0;i<GROUPS.length;i++){ if(GROUPS[i].id===groupId) return GROUPS[i]; } return GROUPS[GROUPS.length-1]; }
-  function visibleSubjects(){ return COMMON_SUBJECTS.concat([currentGroup().elective]); }
-
-  function qKey(weekId, subj){ return weekId + '-' + subj; }
-  function bKey(weekId, idx){ return weekId + '-boss' + idx; }
-  function electiveBossKey(weekId){ return weekId + '-boss-elective'; }
-
-  // returns the quest list for a week, including the synthetic elective quest
-  function weekQuests(wi){
-    var w = WEEKS[wi];
-    var list = w.quests.slice();
-    var elective = currentGroup().elective;
-    var ew = ELECTIVE_WEEKS[elective][wi];
-    var isObj = ew && typeof ew === 'object';
-    list.push({s: elective, t: isObj ? ew.t : ew, notes: isObj ? ew.notes : undefined});
-    return list;
-  }
-  function weekBoss(wi){
-    var w = WEEKS[wi];
-    var list = w.boss.slice();
-    if(w.electiveBoss){ list.push({t: BOSS_ELECTIVE_TEXT[currentGroup().elective], xp:50, elective:true}); }
-    return list;
-  }
-
-  function totalXP(){
-    var xp = 0;
-    WEEKS.forEach(function(w, wi){
-      weekQuests(wi).forEach(function(q){ if(done[qKey(w.id,q.s)]) xp += 10; });
-      weekBoss(wi).forEach(function(b, bi){
-        var key = b.elective ? electiveBossKey(w.id) : bKey(w.id, bi);
-        if(done[key]) xp += b.xp;
-      });
-    });
-    return xp;
-  }
-  function levelFor(xp){ return Math.floor(xp/100) + 1; }
-
-  function weekProgress(wi){
-    var w = WEEKS[wi];
-    var q = weekQuests(wi), b = weekBoss(wi);
-    var total = q.length + b.length, doneCount = 0;
-    q.forEach(function(item){ if(done[qKey(w.id,item.s)]) doneCount++; });
-    b.forEach(function(item,bi){ var key = item.elective ? electiveBossKey(w.id) : bKey(w.id,bi); if(done[key]) doneCount++; });
-    return total ? doneCount/total : 0;
-  }
-
-  function todayStr(){ var d = new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
-  function markActivity(){
-    var today = todayStr();
-    if(streakData.last === today) return;
-    var y = new Date(); y.setDate(y.getDate()-1);
-    var yesterday = y.getFullYear()+'-'+(y.getMonth()+1)+'-'+y.getDate();
-    streakData.count = (streakData.last === yesterday) ? streakData.count+1 : 1;
-    streakData.last = today;
-    save('bq_streak', streakData);
-  }
-
-  function currentWeekIndex(){
-    var start = new Date(2026,9,27);
-    var diffDays = Math.floor((new Date() - start) / 86400000);
-    var idx = Math.floor(diffDays/7);
-    if(idx < 0) idx = 0; if(idx > WEEKS.length-1) idx = WEEKS.length-1;
-    return idx;
-  }
-
-  var pathEl = document.getElementById('path');
-  var panelsEl = document.getElementById('panels');
-  var groupBarEl = document.getElementById('group-bar');
-  var curWeek = currentWeekIndex();
-  var openPanel = null;
-
-  function renderGroupBar(){
-    groupBarEl.innerHTML = GROUPS.map(function(g){
-      return '<button class="group-chip'+(g.id===groupId?' active':'')+'" data-g="'+g.id+'">'+g.label+'</button>';
-    }).join('');
-    groupBarEl.querySelectorAll('.group-chip').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        groupId = btn.dataset.g; save('bq_group', groupId);
-        openPanel = null; panelsEl.innerHTML = '';
-        renderGroupBar(); render();
-      });
-    });
-  }
-
-  function renderHudSubjects(){
-    var el = document.getElementById('hud-subjects');
-    el.innerHTML = visibleSubjects().map(function(s){
-      var m = SUBJECT_META[s];
-      return '<span class="hud-subj-pill" style="background:'+m.color+'22;color:'+m.color+'">'+m.label+'</span>';
-    }).join('');
-  }
-
-  function render(){
-    renderHudSubjects();
-    var xp = totalXP();
-    var level = levelFor(xp);
-    var xpBase = (level-1)*100, xpNext = level*100;
-    var pct = ((xp - xpBase) / (xpNext - xpBase)) * 100;
-
-    document.getElementById('hud-level').textContent = level;
-    document.getElementById('hud-rank').textContent = rankFor(level);
-    document.getElementById('xp-current').textContent = xp;
-    document.getElementById('xp-needed').textContent = xpNext;
-    document.getElementById('xp-fill').style.width = pct + '%';
-    document.getElementById('hud-streak').textContent = streakData.count;
-
-    var completedWeeks = 0;
-    WEEKS.forEach(function(w, wi){ if(weekProgress(wi) >= 1) completedWeeks++; });
-    document.getElementById('path-fill').style.height = (completedWeeks / WEEKS.length * 100) + '%';
-
-    pathEl.querySelectorAll('.node').forEach(function(n){ n.remove(); });
-    WEEKS.forEach(function(w, wi){
-      var prog = weekProgress(wi);
-      var node = document.createElement('div');
-      node.className = 'node' + (prog>=1 ? ' complete':'') + (wi===curWeek ? ' current':'');
-      node.innerHTML =
-        '<div class="node-dot">'+(prog>=1 ? '✓' : (wi+1))+'</div>'+
-        '<div class="node-card">'+
-          '<div class="node-head"><span class="node-title">'+w.title+'</span><span class="node-dates">'+w.dates+'</span></div>'+
-          '<span class="node-phase">'+w.phase+'</span>'+
-          '<div class="node-progress"><div class="node-progress-fill" style="width:'+Math.round(prog*100)+'%"></div></div>'+
-        '</div>';
-      node.addEventListener('click', function(){ togglePanel(wi); });
-      pathEl.appendChild(node);
-    });
-  }
-
-  function subjectText(wi, subjKey){
-    var q = weekQuests(wi);
-    for(var i=0;i<q.length;i++){ if(q[i].s === subjKey) return q[i].t; }
-    return '';
-  }
-  function sessionDone(wi, subjKey){
-    var w = WEEKS[wi];
-    return !!done[qKey(w.id, subjKey)];
-  }
-  function buildDailyPlan(wi){
-    var todayLabels = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    var todayLabel = todayLabels[new Date().getDay()];
-    var elective = currentGroup().elective;
-    var html = '<div class="daily-section"><h3>📅 Daily Plan</h3>';
-    DAILY_TEMPLATE.forEach(function(day){
-      html += '<div class="day-row'+(day.d===todayLabel && wi===curWeek ? ' today':'')+'"><div class="day-label">'+day.d+'</div><div class="day-sessions">';
-      [['s1','3h'],['s2','1.5h'],['s3','1.5h']].forEach(function(slot){
-        var key = day[slot[0]];
-        if(!key) return;
-        if(key === 'elective') key = elective;
-        if(key === 'rev'){
-          var isFullRev = slot[0]==='s1' && !day.s2;
-          html += '<div class="sess-chip"><span class="sess-time">'+slot[1]+'</span><span class="sess-subj" style="color:var(--muted)">Revision</span><span>'+
-            (isFullRev ? 'Review every subject’s notes this week, redo one problem from each, rest.' : 'Revisit today’s weak spots from the last few days.')+'</span></div>';
-          return;
-        }
-        var meta = SUBJECT_META[key];
-        var text = subjectText(wi, key);
-        var isDone = sessionDone(wi, key);
-        html += '<div class="sess-chip"><span class="sess-time">'+slot[1]+'</span><span class="sess-subj" style="color:'+meta.color+'">'+meta.label+'</span><span>'+text+'</span>'+
-          (isDone ? '<span class="sess-check">✓</span>' : '')+'</div>';
-      });
-      html += '</div></div>';
-    });
-    html += '</div>';
-    return html;
-  }
-
-  function togglePanel(wi){
-    panelsEl.innerHTML = '';
-    if(openPanel === wi){ openPanel = null; return; }
-    openPanel = wi;
-    var w = WEEKS[wi];
-    var quests = weekQuests(wi), boss = weekBoss(wi);
-    var html = '<div class="panel open"><h2>'+w.title+' — '+w.phase+'</h2><div class="dates">'+w.dates+'</div>';
-    quests.forEach(function(q){
-      var k = qKey(w.id, q.s);
-      var meta = SUBJECT_META[q.s];
-      html += '<div class="quest'+(done[k]?' done':'')+'">'+
-        '<input type="checkbox" data-week="'+w.id+'" data-subj="'+q.s+'" '+(done[k]?'checked':'')+'>'+
-        '<div class="quest-body"><span class="quest-subject" style="background:'+meta.color+'22;color:'+meta.color+'">'+meta.label+'</span>'+
-        '<div class="quest-text">'+q.t+'</div>'+
-        (q.notes ? '<div class="quest-notes">'+q.notes.map(function(n){
-          return '<a href="'+noteUrl(n)+'" target="_blank" rel="noopener">📄 '+n.label+'</a>';
-        }).join('')+'</div>' : '')+
-        '</div>'+
-        '<div class="quest-xp">+10</div></div>';
-    });
-    html += buildDailyPlan(wi);
-    if(boss.length){
-      html += '<div class="boss-section"><h3>⚔ Boss Battles</h3>';
-      boss.forEach(function(b, bi){
-        var k = b.elective ? electiveBossKey(w.id) : bKey(w.id,bi);
-        html += '<div class="quest boss'+(done[k]?' done':'')+'">'+
-          '<input type="checkbox" data-week="'+w.id+'" data-boss="'+(b.elective?'elective':bi)+'" '+(done[k]?'checked':'')+'>'+
-          '<div class="quest-body"><div class="quest-text">'+b.t+'</div></div>'+
-          '<div class="quest-xp">+'+b.xp+'</div></div>';
-      });
-      html += '</div>';
-    }
-    html += '<button class="close-panel" id="close-panel">Close</button></div>';
-    panelsEl.innerHTML = html;
-
-    panelsEl.querySelectorAll('input[type=checkbox]').forEach(function(cb){
-      cb.addEventListener('change', function(){
-        var weekId = cb.dataset.week;
-        var xpBefore = totalXP();
-        if(cb.dataset.subj){
-          done[qKey(weekId, cb.dataset.subj)] = cb.checked;
-        } else {
-          var bval = cb.dataset.boss;
-          var key = bval === 'elective' ? electiveBossKey(weekId) : bKey(weekId, +bval);
-          done[key] = cb.checked;
-        }
-        save('bq_done', done);
-        if(cb.checked) markActivity();
-        var xpAfter = totalXP();
-        if(levelFor(xpAfter) > levelFor(xpBefore)) showLevelUp(levelFor(xpAfter));
-        render();
-        var reopenAt = wi;
-        openPanel = null;
-        togglePanel(reopenAt);
-      });
-    });
-    document.getElementById('close-panel').addEventListener('click', function(){ openPanel=null; panelsEl.innerHTML=''; });
-  }
-
-  function showLevelUp(level){
-    var el = document.getElementById('levelup');
-    document.getElementById('levelup-text').textContent = 'Level ' + level + ' · ' + rankFor(level);
-    el.classList.add('show');
-    setTimeout(function(){ el.classList.remove('show'); }, 2200);
-  }
-
-  document.getElementById('reset-btn').addEventListener('click', function(){
-    var btn = this;
-    if(btn.textContent.indexOf('Sure') === -1){
-      btn.textContent = 'Sure? Tap again to reset';
-      setTimeout(function(){ btn.textContent = 'Reset all progress'; }, 3000);
-      return;
-    }
-    done = {}; streakData = {count:0,last:null};
-    save('bq_done', done); save('bq_streak', streakData);
-    panelsEl.innerHTML=''; openPanel=null; btn.textContent='Reset all progress';
-    render();
-  });
-
-  renderGroupBar();
-  render();
-  togglePanel(curWeek);
-})();
-</script>
+</body>
+</html>
